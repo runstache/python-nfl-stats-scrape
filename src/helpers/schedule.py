@@ -6,6 +6,7 @@ from pyquery import PyQuery as pq
 from urllib.parse import urljoin, parse_qs, urlparse
 from lxml.html import HtmlElement
 
+
 class ScheduleHelper:
     
     document:pq
@@ -36,10 +37,7 @@ class ScheduleHelper:
         for schedule_table in schedule_tables:
             
             body = schedule_table.find('tbody')           
-            rows = body.findall('tr')
-            
-            
-            
+            rows = body.findall('tr')            
             for row in rows:                
                 schedule_entries.extend(self.build_entries_from_row(row,year, week, type_code))
                 
@@ -70,31 +68,32 @@ class ScheduleHelper:
                 href = ref.attrib.get('href')
                 if 'player' not in href and href not in links:
                     links.append(href)
-        game_url = urljoin('https://www.espn.com', links.pop())
-        away_team = links.pop()
-        home_team = links.pop()
+        if len(links) == 3:
+            game_url = urljoin('https://www.espn.com', links.pop())
+            away_team = links.pop()
+            home_team = links.pop()
                 
-        parsed_url = urlparse(game_url)
-        game_id = parse_qs(parsed_url.query).get('gameId')[0]
-                
-        schedule_entries.append({
-            'teamUrl': urljoin('https://www.espn.com', home_team),
-            'opponentUrl': urljoin('https://www.espn.com', away_team),
-            'url': game_url,
-            'year': year,
-            'week': week,
-            'typeCode': type_code,
-            'homeGame': True,
-            'gameId': int(game_id)
-        })
-        schedule_entries.append({
-            'opponentUrl': urljoin('https://www.espn.com', home_team),
-            'teamUrl': urljoin('https://www.espn.com', away_team),
-            'url': game_url,
-            'year': year,
-            'week': week,
-            'typeCode': type_code,
-            'homeGame': False,
-            'gameId': int(game_id)                
-        })                                  
+            parsed_url = urlparse(game_url)
+            game_id = parse_qs(parsed_url.query).get('gameId', [0])[0]
+            if int(game_id) > 0:                
+                schedule_entries.append({
+                    'teamUrl': urljoin('https://www.espn.com', home_team),
+                    'opponentUrl': urljoin('https://www.espn.com', away_team),
+                    'url': game_url,
+                    'year': year,
+                    'week': week,
+                    'typeCode': type_code,
+                    'homeGame': True,
+                    'gameId': int(game_id)
+                })
+                schedule_entries.append({
+                    'opponentUrl': urljoin('https://www.espn.com', home_team),
+                    'teamUrl': urljoin('https://www.espn.com', away_team),
+                    'url': game_url,
+                    'year': year,
+                    'week': week,
+                    'typeCode': type_code,
+                    'homeGame': False,
+                    'gameId': int(game_id)                
+                })                                  
         return schedule_entries    
