@@ -26,7 +26,8 @@ class PositionHelper:
             'safety': 'S',
             'punter': 'P',
             'kicker': 'K',
-            'placekicker': 'K'
+            'placekicker': 'K',
+            'longsnapper': 'C'
         }
     
     def translate_position(self, value:str) -> str|None:
