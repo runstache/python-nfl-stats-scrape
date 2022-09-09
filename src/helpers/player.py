@@ -21,7 +21,7 @@ class PlayerHelper:
         self.api_url = urljoin(api_base_url, '/api/player')
         logging.basicConfig(level=logging.INFO)
     
-    def load_player_data(self)->pq:
+    def load_player_data(self)->pq|None:
         """
         Retrieves the data from the Url and Loads to PyQuery
 
@@ -29,9 +29,25 @@ class PlayerHelper:
             pq: PyQuery
         """
         
-        response = requests.get(self.player_url)
-        if response.status_code == 200:
-            return pq(response.text)
+        success = False
+        count = 0
+        max_attempts = 5
+        while not success and count <= max_attempts:
+            try:
+                response = requests.get(self.player_url, timeout=60)
+                
+                if response.status_code == 200:
+                    success = True
+                    return pq(response.text)
+                else:
+                    success = False
+                    count = count + 1
+            except TimeoutError:
+                logging.warning('PLAYER RETRIEVAL TIMED OUT')
+                success = False
+                count = count + 1 
+        return None
+                
         
     
     def add_player_information(self, player:dict) -> None:    
@@ -43,7 +59,7 @@ class PlayerHelper:
         if response.status_code != 200:
             logging.warning(f"PLAYER SAVE POSSIBLY FAILED: {self.player_url}")
             
-    def build_player(self) -> dict:
+    def build_player(self) -> dict|None:
         """
         Creates a player model to submit to the api.
 
@@ -53,26 +69,28 @@ class PlayerHelper:
         
         document = self.load_player_data()
         
-        name_header = document('h1.PlayerHeader__Name')
-        pieces = name_header.find('span')
+        if  document != None:
+            name_header = document('h1.PlayerHeader__Name')
+            pieces = name_header.find('span')
         
-        name = ''
-        for piece in pieces:
-            name = name + ' ' + piece.text
+            name = ''
+            for piece in pieces:
+                name = name + ' ' + piece.text
         
-        team_info = document('ul.PlayerHeader__Team_Info')
+            team_info = document('ul.PlayerHeader__Team_Info')
         
-        items = team_info.find('li')
-        position = None
-        helper = PositionHelper()
-        for item in items:
-            position = helper.translate_position(item.text)
-            if position:
-                break
+            items = team_info.find('li')
+            position = None
+            helper = PositionHelper()
+            for item in items:
+                position = helper.translate_position(item.text)
+                if position:
+                    break
         
-        return {
-            'url': self.player_url,
-            'name': name.strip(),
-            'positionCode': position            
-        }
+            return {
+                'url': self.player_url,
+                'name': name.strip(),
+                'positionCode': position            
+            }
+        return None
         
