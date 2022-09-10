@@ -33,14 +33,39 @@ class BoxscoreHelper:
         value = column(path).text()
         return value if value != '' and value != '--' else None
     
-    def build_statistic(self, row:pq, path:str, schedule_id:int, type_code:str, player_url:str, identifier:str) -> dict|None:
+    def split_values(self, value:str) -> list|None:
+        """
+        Splits a String value by the '/'
+
+        Args:
+            value (str): Value to split
+
+        Returns:
+            list|None: List of integers or None
+        """
+        
+        
+        parts = value.split('/')
+        if parts and len(parts) == 2:
+            results = []
+            for part in parts:
+                if str(part).isnumeric():
+                    results.append(int(part))
+            return results if len(results) == 2 else None
+            
+        return None
+        
+        
+        
+    def build_statistic(self, row:pq, path:str, team_id:int, game_id:int, type_code:str, player_url:str, identifier:str) -> dict|None:
         """
         Builds a Statistic Object from the items
 
         Args:
             row (pq): Row to Query
             path (str): Path to Column Value
-            schedule_id (int): Schedule Id
+            team_id (int): Team Id
+            game_id (int) Game Id
             type_code (str): Stat Type Code
             player_url (str): Player Url
             identifier (str): Stat identifier
@@ -55,13 +80,14 @@ class BoxscoreHelper:
                 'statisticCode': identifier,
                 'playerUrl': player_url,
                 'value': float(value),
-                'scheduleId': schedule_id,
+                'teamId': team_id,
+                'gameId': game_id,
                 'categoryCode': type_code
             }
             
         return None
         
-    def process_row(self, codes:list, row:pq, schedule_id:int, type_code:str) -> list:
+    def process_row(self, codes:list, row:pq, team_id:int, game_id:int, type_code:str) -> list:
         """
         Processes a Row into a collection of Statistics.
 
@@ -82,7 +108,7 @@ class BoxscoreHelper:
         player_url = ref.attr('href')
                     
         for item in codes:
-            stat = self.build_statistic(player_row, item[1], schedule_id, type_code, player_url, item[0])
+            stat = self.build_statistic(player_row, item[1], team_id, game_id, type_code, player_url, item[0])
             if stat:
                 stats.append(stat)                                                                                    
         return stats
@@ -117,7 +143,7 @@ class BoxscoreHelper:
                     count = count + 1
         
             
-    def build_passing_statistics(self, schedule_id:int, section:HtmlElement) -> list:
+    def build_passing_statistics(self, team_id:int, game_id:int, section:HtmlElement) -> list:
         """
         Creates statistics for the Passing section.
 
@@ -160,31 +186,34 @@ class BoxscoreHelper:
                         'statisticCode': 'PC',
                         'playerUrl': player_url,
                         'value': int(parts[0]),
-                        'scheduleId': schedule_id,
+                        'teamId': team_id,
+                        'gameId': game_id,
                         'categoryCode': 'O'
                     })
                     stats.append({
                         'statisticCode': 'PA',
                         'playerUrl': player_url,
                         'value': int(parts[1]),
-                        'scheduleId': schedule_id,
+                        'teamId': team_id,
+                        'gameId': game_id,
                         'categoryCode': 'O'
                     })
                     
                     for item in player_stat_items:
-                        stat = self.build_statistic(player_row, item[1], schedule_id, 'O', player_url, item[0])
+                        stat = self.build_statistic(player_row, item[1], team_id, game_id, 'O', player_url, item[0])
                         if stat:
                             stats.append(stat)
                 
                             
         return stats
     
-    def build_rushing_statistics(self, schedule_id:int, section:HtmlElement) -> list:
+    def build_rushing_statistics(self, team_id:int, game_id:int, section:HtmlElement) -> list:
         """
         Creates statistics for the Rushing Section.
 
         Args:
-            schedule_id (int): Schedule Id
+            team_id (int): Team Id
+            game_id (int): Game Id
             section (HtmlElement): Rushing Section
 
         Returns:
@@ -206,15 +235,16 @@ class BoxscoreHelper:
             
             for row in rows:          
                 if row.attrib.get('class') == None:      
-                    stats.extend(self.process_row(player_stat_items, row, schedule_id,'O'))
+                    stats.extend(self.process_row(player_stat_items, row, team_id, game_id,'O'))
         return stats
 
-    def build_receiving_statistics(self, schedule_id:int, section:HtmlElement) -> list:
+    def build_receiving_statistics(self, team_id:int, game_id:int, section:HtmlElement) -> list:
         """
         Creates statistics for the Receiving Section.
 
         Args:
-            schedule_id (int): Schedule Id
+            team_id (int): Team Id
+            game_id (int): Game Id
             section (HtmlElement): Receiving Section
 
         Returns:
@@ -237,15 +267,16 @@ class BoxscoreHelper:
             
             for row in rows:          
                 if row.attrib.get('class') == None:      
-                    stats.extend(self.process_row(player_stat_items, row, schedule_id, 'O'))                                 
+                    stats.extend(self.process_row(player_stat_items, row, team_id, game_id, 'O'))                                 
         return stats
     
-    def build_fumble_statistics(self, schedule_id:int, section:HtmlElement) -> list:
+    def build_fumble_statistics(self, team_id:int, game_id:int, section:HtmlElement) -> list:
         """
         Creates Statistics for the Fumbles Section.
 
         Args:
-            schedule_id (int): Schedule Id
+            team_id (int): Team Id
+            game_id (int): Game Id
             section (HtmlElement): Fumbles Section
 
         Returns:
@@ -265,15 +296,16 @@ class BoxscoreHelper:
             
             for row in rows:          
                 if row.attrib.get('class') == None:      
-                    stats.extend(self.process_row(player_stat_items, row, schedule_id, 'O'))
+                    stats.extend(self.process_row(player_stat_items, row, team_id, game_id, 'O'))
         return stats
     
-    def build_defensive_statistics(self, schedule_id:int, section:HtmlElement) -> list:
+    def build_defensive_statistics(self, team_id:int, game_id:int, section:HtmlElement) -> list:
         """
         Creates Statistics for the Defensive Section.
 
         Args:
-            schedule_id (int): Schedule Id
+            team_id (int): Team Id
+            game_id (int): Game Id
             section (HtmlElement): Defensive Section
 
         Returns:
@@ -298,15 +330,16 @@ class BoxscoreHelper:
             
             for row in rows:          
                 if row.attrib.get('class') == None:      
-                    stats.extend(self.process_row(player_stat_items, row, schedule_id, 'D'))
+                    stats.extend(self.process_row(player_stat_items, row, team_id, game_id, 'D'))
         return stats
     
-    def build_interception_statistics(self, schedule_id:int, section:HtmlElement) -> list:
+    def build_interception_statistics(self, team_id:int, game_id:int, section:HtmlElement) -> list:
         """
         Creates Statistics for the Interceptions section.
 
         Args:
-            schedule_id (int): Schedule Id
+            team_id (int): Team Id
+            game_id (int): Game Id
             section (HtmlElement): Interception Section
 
         Returns:
@@ -325,15 +358,16 @@ class BoxscoreHelper:
             
             for row in rows:          
                 if row.attrib.get('class') == None:      
-                    stats.extend(self.process_row(player_stat_items, row, schedule_id, 'D'))
+                    stats.extend(self.process_row(player_stat_items, row, team_id, game_id, 'D'))
         return stats
     
-    def build_kick_return_statistics(self, schedule_id:int, section:HtmlElement) -> list:
+    def build_kick_return_statistics(self, team_id:int, game_id:int, section:HtmlElement) -> list:
         """
         Creates Statistics for the Kick Returns section.
 
         Args:
-            schedule_id (int): Schedule Id
+            team_id (int): Team Id
+            game_id (int): Game Id
             section (HtmlElement): kick returns section
 
         Returns:
@@ -355,15 +389,16 @@ class BoxscoreHelper:
             
             for row in rows:          
                 if row.attrib.get('class') == None:      
-                    stats.extend(self.process_row(player_stat_items, row, schedule_id, 'S'))
+                    stats.extend(self.process_row(player_stat_items, row, team_id, game_id, 'S'))
         return stats
     
-    def build_punt_return_statistics(self, schedule_id:int, section:HtmlElement) -> list:
+    def build_punt_return_statistics(self, team_id:int, game_id:int, section:HtmlElement) -> list:
         """
         Creates statistics for the Punt Returns Section.
 
         Args:
-            schedule_id (int): Schedule Id
+            team_id (int): Team Id
+            game_id (int): Game Id
             section (HtmlElement): Punt Return Section
 
         Returns:
@@ -385,15 +420,16 @@ class BoxscoreHelper:
             
             for row in rows:          
                 if row.attrib.get('class') == None:      
-                    stats.extend(self.process_row(player_stat_items, row, schedule_id, 'S'))
+                    stats.extend(self.process_row(player_stat_items, row, team_id, game_id, 'S'))
         return stats
         
-    def build_kicking_statistics(self, schedule_id:int, section:HtmlElement) -> list:
+    def build_kicking_statistics(self, team_id:int, game_id:int, section:HtmlElement) -> list:
         """
         Creates Statistics for the Kicking Section.
 
         Args:
-            schedule_id (int): Schedule Id
+            team_id (int): Team Id
+            game_id (int): Game Id
             section (HtmlElement): Kicking Section
 
         Returns:
@@ -416,50 +452,56 @@ class BoxscoreHelper:
                     ref = player_column.find('a')
                     player_url = ref.attr('href')
 
-                    fg_comp_attempt = player_row('td.fg').text()
-                    fg_parts = fg_comp_attempt.split('/')
-                    stats.append({
-                        'statisticCode': 'FGM',
-                        'playerUrl': player_url,
-                        'value': int(fg_parts[0]),
-                        'scheduleId': schedule_id,
-                        'categoryCode': 'S'
-                    })
-                    stats.append({
-                        'statisticCode': 'FGA',
-                        'playerUrl': player_url,
-                        'value': int(fg_parts[1]),
-                        'scheduleId': schedule_id,
-                        'categoryCode': 'S'
-                    })
+                    fg_comp_attempt = player_row('td.fg').text()                    
+                    fg_parts = self.split_values(fg_comp_attempt)
+                    if fg_parts:
+                        stats.append({
+                            'statisticCode': 'FGM',
+                            'playerUrl': player_url,
+                            'value': int(fg_parts[0]),
+                            'teamId': team_id,
+                            'gameId': game_id,
+                            'categoryCode': 'S'
+                        })
+                        stats.append({
+                            'statisticCode': 'FGA',
+                            'playerUrl': player_url,
+                            'value': int(fg_parts[1]),
+                            'teamId': team_id,
+                            'gameId': game_id,
+                            'categoryCode': 'S'
+                        })
                     xp_comp_attempt = player_row('td.xp').text()
-                    xp_parts = xp_comp_attempt.split('/')
-                    stats.append({
-                        'statisticCode': 'XPA',
-                        'playerUrl': player_url,
-                        'value': int(xp_parts[1]),
-                        'scheduleId': schedule_id,
-                        'categoryCode': 'S'
-                    })
-                                
-                    stats.append({
-                        'statisticCode': 'XPM',
-                        'playerUrl': player_url,
-                        'value': int(xp_parts[0]),
-                        'scheduleId': schedule_id,
-                        'categoryCode': 'S'
-                    })
+                    xp_parts = self.split_values(xp_comp_attempt)
+                    if xp_parts:
+                        stats.append({
+                            'statisticCode': 'XPA',
+                            'playerUrl': player_url,
+                            'value': int(xp_parts[1]),
+                            'teamId': team_id,
+                            'gameId': game_id,
+                            'categoryCode': 'S'
+                        })
+                        stats.append({
+                            'statisticCode': 'XPM',
+                            'playerUrl': player_url,
+                            'value': int(xp_parts[0]),
+                            'teamId': team_id,
+                            'gameId': game_id,
+                            'categoryCode': 'S'
+                        })
                 
-                    stats.extend(self.process_row(player_stat_items, row, schedule_id, 'S'))
+                    stats.extend(self.process_row(player_stat_items, row, team_id, game_id, 'S'))
                 
         return stats
     
-    def build_punting_statistics(self, schedule_id:int, section:HtmlElement) -> list:
+    def build_punting_statistics(self, team_id:int, game_id:int, section:HtmlElement) -> list:
         """
         Creates Statistics for the Punting section.
 
         Args:
-            schedule_id (int): schedule id
+            team_id (int): Team Id
+            game_id (int): Game Id
             section (HtmlElement): Punting section
 
         Returns:
@@ -483,7 +525,7 @@ class BoxscoreHelper:
             
             for row in rows:          
                 if row.attrib.get('class') == None:      
-                    stats.extend(self.process_row(player_stat_items, row, schedule_id, 'S'))
+                    stats.extend(self.process_row(player_stat_items, row, team_id, game_id, 'S'))
         return stats        
 
         
