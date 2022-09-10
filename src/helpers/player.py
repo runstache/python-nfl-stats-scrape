@@ -7,6 +7,7 @@ from urllib.parse import urljoin
 import requests
 from helpers.positions import PositionHelper
 import logging
+from requests.exceptions import RequestException
 
 class PlayerHelper:
     
@@ -41,11 +42,11 @@ class PlayerHelper:
                     return pq(response.text)
                 else:
                     success = False
-                    count = count + 1
-            except TimeoutError:
-                logging.warning('PLAYER RETRIEVAL TIMED OUT')
+            except (TimeoutError, RequestException):
+                logging.warning('PLAYER RETRIEVAL ISSUE')
                 success = False
-                count = count + 1 
+            count = count + 1 
+            
         return None
                 
         
@@ -55,9 +56,22 @@ class PlayerHelper:
         Adds the Player information to the API.
         """
         
-        response = requests.post(self.api_url, json=player)
-        if response.status_code != 200:
-            logging.warning(f"PLAYER SAVE POSSIBLY FAILED: {self.player_url}")
+        max_retries = 5
+        count = 0
+        success = False
+        
+        while not success and count <= max_retries:        
+            try:
+                response = requests.post(self.api_url, json=player)
+                success = True
+                if response.status_code != 200:
+                    logging.warning(f"PLAYER SAVE POSSIBLY FAILED: {self.player_url}")
+                    success = False
+            except RequestException:
+                logging.warning('ISSUE SAVING PLAYER TO API, RETRYING...')
+                success = False
+            count = count + 1
+            
             
     def build_player(self) -> dict|None:
         """
