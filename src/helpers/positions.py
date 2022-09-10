@@ -14,12 +14,13 @@ class PositionHelper:
             'tightend': 'TE',
             'fullback': 'FB',
             'tackle': 'T',
-            'offensivetacke': 'T',
+            'offensivetackle': 'T',
             'offensiveguard': 'G',
             'guard': 'G',
             'center': 'C',
             'defensiveend': 'DE' ,
             'defensivetackle': 'DT',
+            'nosetackle': 'DT',
             'linebacker': 'LB',
             'cornerback': 'CB',
             'defensiveback': 'CB',
@@ -27,7 +28,8 @@ class PositionHelper:
             'punter': 'P',
             'kicker': 'K',
             'placekicker': 'K',
-            'longsnapper': 'C'
+            'longsnapper': 'C',
+            'kickreturner': 'WR'
         }
     
     def translate_position(self, value:str) -> str|None:
