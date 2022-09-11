@@ -68,8 +68,10 @@ class MatchupHelper:
             list: collection of stats
         """
         
-        columns = row.find('td')
-        
+        columns = []
+        if row:
+            columns = row.find('td')
+            
         if len(columns) == 3:
             away_value = str(columns[1].text).strip()
             home_value = str(columns[2].text).strip()
@@ -103,9 +105,10 @@ class MatchupHelper:
         Returns:
             list|None: Collection of Stats
         """
-        
+        columns = []
         row = self.find_row(table, 'redZoneAttempts')
-        columns = row.find('td')
+        if row:
+            columns = row.find('td')
         
         if len(columns) == 3:    
             away_value = str(columns[1].text).strip()
@@ -149,10 +152,11 @@ class MatchupHelper:
         Returns:
             list|None: Collection of Stats
         """
-        
+        columns = []
         row = self.find_row(table, 'thirdDownEff')
-        columns = row.find('td')
-        
+        if row:
+            columns = row.find('td')
+                
         if len(columns) == 3:    
             away_value = str(columns[1].text).strip()
             home_value = str(columns[2].text).strip()
@@ -196,8 +200,10 @@ class MatchupHelper:
             list|None: Collection of Stats
         """
         
+        columns = []        
         row = self.find_row(table, 'fourthDownEff')
-        columns = row.find('td')
+        if row:
+            columns = row.find('td')
         
         if len(columns) == 3:    
             away_value = str(columns[1].text).strip()
@@ -242,8 +248,11 @@ class MatchupHelper:
             list|None: Collection of Stats
         """
         
+        columns = []       
         row = self.find_row(table, 'completionAttempts')
-        columns = row.find('td')
+        if row:
+            columns = row.find('td')
+ 
         
         if len(columns) == 3:    
             away_value = str(columns[1].text).strip()
@@ -287,8 +296,11 @@ class MatchupHelper:
         Returns:
             list|None: Collection of Stats
         """
+    
+        columns = []
         row = self.find_row(table, 'totalPenaltiesYards')
-        columns = row.find('td')
+        if row:
+            columns = row.find('td')
         
         if len(columns) == 3:    
             away_value = str(columns[1].text).strip()
@@ -332,8 +344,10 @@ class MatchupHelper:
         Returns:
             list|None: Collection of Stats
         """
+        columns = []
         row = self.find_row(table, 'possessionTime')
-        columns = row.find('td')
+        if row:
+            columns = row.find('td')
         
         if len(columns) == 3:    
             away_value = str(columns[1].text).strip()
