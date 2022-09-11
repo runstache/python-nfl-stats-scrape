@@ -9,12 +9,12 @@ import os
 
 logging.basicConfig(level=logging.INFO)
 
-URL = "https://www.espn.com/nfl/boxscore/_/gameId/400951741"
+URL = "https://www.espn.com/nfl/matchup?gameId=401437654"
 
 response = requests.get(URL)
 
 if not os.path.exists('./output'):
-    os.mkdirs('./output')
+    os.makedirs('./output')
 
-with open('./output/boxscore.html', 'w', encoding='utf-8') as output_text:
+with open('./output/teams.html', 'w', encoding='utf-8') as output_text:
     output_text.write(response.text)
