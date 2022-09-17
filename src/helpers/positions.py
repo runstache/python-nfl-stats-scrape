@@ -29,7 +29,8 @@ class PositionHelper:
             'kicker': 'K',
             'placekicker': 'K',
             'longsnapper': 'C',
-            'kickreturner': 'WR'
+            'kickreturner': 'WR',
+            'offensivelineman': 'OL'
         }
     
     def translate_position(self, value:str) -> str|None:
