@@ -54,8 +54,3 @@ def test_get_schedule_entries():
         'homeGame': False
     })
     
-    
-    
-    
-    
-    

@@ -2,12 +2,15 @@
 Player Helper Class to build and submit Players to the API.
 """
 
-from pyquery import PyQuery as pq
-from urllib.parse import urljoin
-import requests
-from helpers.positions import PositionHelper
 import logging
+from urllib.parse import urljoin
+
+import requests
+from pyquery import PyQuery as pq
 from requests.exceptions import RequestException
+
+from helpers.positions import PositionHelper
+
 
 class PlayerHelper:
     

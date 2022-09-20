@@ -9,7 +9,7 @@ import logging
 from urllib.parse import urljoin
 import os
 
-API_URL = urljoin(os.environ.get('BASE_URL'),'/api/schedule')
+API_URL = 'http://k3-main:30082/api/schedule'
 
 logging.basicConfig(level=logging.INFO)
 

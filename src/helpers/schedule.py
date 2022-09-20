@@ -2,24 +2,24 @@
 Schedule Module for Converting Schedule Entries from the listing.
 """
 
-from pyquery import PyQuery as pq
-from urllib.parse import urljoin, parse_qs, urlparse
+from urllib.parse import parse_qs, urljoin, urlparse
+
 from lxml.html import HtmlElement
+from pyquery import PyQuery as pq
 
 
 class ScheduleHelper:
-    
-    document:pq
-    
-    def __init__(self, doc:str):
+
+    document: pq
+
+    def __init__(self, doc: str):
         """
         Constructor
         """
-        
+
         self.document = pq(doc)
-    
-    
-    def get_schedule_entries(self, week:int, year:int, type_code:str) -> list:
+
+    def get_schedule_entries(self, week: int, year: int, type_code: str) -> list:
         """
         Retrieves the Schedule values from the HTML Document.
 
@@ -31,20 +31,20 @@ class ScheduleHelper:
         Returns:
             list: List of Schedule Entries
         """
-        
+
         schedule_tables = self.document('table.Table')
         schedule_entries = []
         for schedule_table in schedule_tables:
-            
-            body = schedule_table.find('tbody')           
-            rows = body.findall('tr')            
-            for row in rows:                
-                schedule_entries.extend(self.build_entries_from_row(row,year, week, type_code))
-                
-                                              
+
+            body = schedule_table.find('tbody')
+            rows = body.findall('tr')
+            for row in rows:
+                schedule_entries.extend(
+                    self.build_entries_from_row(row, year, week, type_code))
+
         return schedule_entries
-    
-    def build_entries_from_row(self, row:HtmlElement, year:int, week:int, type_code:str) -> list:
+
+    def build_entries_from_row(self, row: HtmlElement, year: int, week: int, type_code: str) -> list:
         """
         Builds a Set of Schedule Entries from a Row
 
@@ -72,10 +72,10 @@ class ScheduleHelper:
             game_url = urljoin('https://www.espn.com', links.pop())
             away_team = links.pop()
             home_team = links.pop()
-                
+
             parsed_url = urlparse(game_url)
             game_id = parse_qs(parsed_url.query).get('gameId', [0])[0]
-            if int(game_id) > 0:                
+            if int(game_id) > 0:
                 schedule_entries.append({
                     'teamUrl': urljoin('https://www.espn.com', home_team),
                     'opponentUrl': urljoin('https://www.espn.com', away_team),
@@ -94,6 +94,6 @@ class ScheduleHelper:
                     'week': week,
                     'typeCode': type_code,
                     'homeGame': False,
-                    'gameId': int(game_id)                
-                })                                  
-        return schedule_entries    
+                    'gameId': int(game_id)
+                })
+        return schedule_entries
