@@ -591,4 +591,41 @@ def test_get_turnovers():
             'teamId': AWAY_ID,
             'categoryCode': 'T'
     })
-        
+    
+def test_get_scores():
+    """
+    Test get Score stats from the page.
+    """
+    
+    doc = load_test_file()
+    helper = MatchupHelper(doc, API_URL)
+    stats = helper.build_team_stats(TEAM_ID, AWAY_ID, GAME_ID)
+    
+    assert_that(stats).contains({
+        'statisticCode': 'PTS',
+        'value': 10,
+        'gameId': GAME_ID,
+        'teamId': TEAM_ID,
+        'categoryCode': 'T'
+    })\
+    .contains({
+        'statisticCode': 'PTS',
+        'value': 31,
+        'gameId': GAME_ID,
+        'teamId': AWAY_ID,
+        'categoryCode': 'T'
+    })\
+    .contains({
+        'statisticCode': 'PTSA',
+        'value': 31,
+        'gameId': GAME_ID,
+        'teamId': TEAM_ID,
+        'categoryCode': 'T'
+    })\
+    .contains({
+        'statisticCode': 'PTSA',
+        'value': 10,
+        'gameId': GAME_ID,
+        'teamId': AWAY_ID,
+        'categoryCode': 'T'
+    })
