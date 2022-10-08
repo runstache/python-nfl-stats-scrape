@@ -66,7 +66,7 @@ class ScheduleHelper:
             refs = column_doc('a.AnchorLink')
             for ref in refs:
                 href = ref.attrib.get('href')
-                if 'player' not in href and href not in links:
+                if 'player' not in href and href not in links and 'accuweather' not in href and 'vividseats' not in href:
                     links.append(href)
         if len(links) == 3:
             game_url = urljoin('https://www.espn.com', links.pop())
