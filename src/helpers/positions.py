@@ -2,12 +2,12 @@
 Transalates values to position codes.
 """
 
+
 class PositionHelper:
-    
-    postions:dict
-    
+    positions: dict
+
     def __init__(self) -> None:
-        self.postions = {
+        self.positions = {
             'quarterback': 'QB',
             'runningback': 'RB',
             'widereceiver': 'WR',
@@ -18,7 +18,7 @@ class PositionHelper:
             'offensiveguard': 'G',
             'guard': 'G',
             'center': 'C',
-            'defensiveend': 'DE' ,
+            'defensiveend': 'DE',
             'defensivetackle': 'DT',
             'nosetackle': 'DT',
             'linebacker': 'LB',
@@ -32,8 +32,8 @@ class PositionHelper:
             'kickreturner': 'WR',
             'offensivelineman': 'OL'
         }
-    
-    def translate_position(self, value:str) -> str|None:
+
+    def translate_position(self, value: str) -> str | None:
         """
         Translates the Position values based on the defined lisiting.
 
@@ -44,5 +44,4 @@ class PositionHelper:
             str|None: Translated value or none
         """
         if value:
-            return self.postions.get(value.lower().replace(' ', ''), None)
-        
+            return self.positions.get(value.lower().replace(' ', ''), None)

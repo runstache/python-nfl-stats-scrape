@@ -6,15 +6,19 @@ name = "pypi"
 [packages]
 requests = "*"
 pyquery = "*"
+fake-useragent = "*"
+batch-football-data = "*"
 
 [dev-packages]
 pytest = "*"
-pytest-cov = "*"
 assertpy = "*"
+mypy = "*"
+pylint = "*"
+pycodestyle = "*"
+pyflakes = "*"
+pytest-cov = "*"
+bandit = "*"
 responses = "*"
-
-
-
 
 [requires]
 python_version = "3.11"

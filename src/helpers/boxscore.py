@@ -1,5 +1,5 @@
 """
-Boxscore Helper Class
+Box score Helper Class
 """
 
 import logging
@@ -12,14 +12,14 @@ from requests.exceptions import RequestException
 
 
 class BoxscoreHelper:
-
     stat_api_url: str
 
     def __init__(self, base_url: str) -> None:
         self.stat_api_url = urljoin(base_url, '/api/statistics')
         logging.basicConfig(level=logging.INFO)
 
-    def get_column_value(self, column: pq, path: str) -> str | None:
+    @staticmethod
+    def get_column_value(column: pq, path: str) -> str | None:
         """
         Returns the value of a column
 
@@ -34,7 +34,8 @@ class BoxscoreHelper:
         value = column(path).text()
         return value if value != '' and value != '--' else None
 
-    def split_values(self, value: str) -> list | None:
+    @staticmethod
+    def split_values(value: str) -> list | None:
         """
         Splits a String value by the '/'
 
@@ -55,7 +56,8 @@ class BoxscoreHelper:
 
         return None
 
-    def build_statistic(self, row: pq, path: str, team_id: int, game_id: int, type_code: str, player_url: str, identifier: str) -> dict | None:
+    def build_statistic(self, row: pq, path: str, team_id: int, game_id: int, type_code: str,
+                        player_url: str, identifier: str) -> dict | None:
         """
         Builds a Statistic Object from the items
 
@@ -92,7 +94,8 @@ class BoxscoreHelper:
         Args:
             codes (list): Statistic Codes as Tuples
             row (pq): Row to process
-            schedule_id (int): Schedule Id
+            team_id (int): Team ID Number
+            game_id (int): Game ID
             type_code (str): Stat Type Code (O, D, S)
 
         Returns:
@@ -129,7 +132,7 @@ class BoxscoreHelper:
                 try:
                     response = requests.post(self.stat_api_url, json=stat)
                     if response.status_code != 200:
-                        logging.warning(f"POSSIBLE FAILURE POSTING STAT.")
+                        logging.warning('POSSIBLE FAILURE POSTING STAT')
                         success = False
                         count = count + 1
                     else:
@@ -144,7 +147,8 @@ class BoxscoreHelper:
         Creates statistics for the Passing section.
 
         Args:
-            schedule_id (int): schedule id
+            team_id (int): Team ID number
+            game_id (int): Game ID Number
             section (HtmlElement): Passing Section
 
         Returns:
@@ -162,12 +166,12 @@ class BoxscoreHelper:
         ]
 
         stat_table = section.find('table')
-        if stat_table != None:
+        if stat_table is not None:
             table_body = stat_table.find('tbody')
             rows = table_body.find('tr')
 
             for row in rows:
-                if row.attrib.get('class') == None:
+                if row.attrib.get('class') is None:
                     player_row = pq(row)
                     player_column = player_row('td.name')
                     ref = player_column.find('a')
@@ -227,7 +231,7 @@ class BoxscoreHelper:
             rows = table_body.find('tr')
 
             for row in rows:
-                if row.attrib.get('class') == None:
+                if row.attrib.get('class') is None:
                     stats.extend(self.process_row(
                         player_stat_items, row, team_id, game_id, 'O'))
         return stats
@@ -255,12 +259,12 @@ class BoxscoreHelper:
         ]
 
         stat_table = section.find('table')
-        if stat_table != None:
+        if stat_table is not None:
             table_body = stat_table.find('tbody')
             rows = table_body.find('tr')
 
             for row in rows:
-                if row.attrib.get('class') == None:
+                if row.attrib.get('class') is None:
                     stats.extend(self.process_row(
                         player_stat_items, row, team_id, game_id, 'O'))
         return stats
@@ -285,12 +289,12 @@ class BoxscoreHelper:
         ]
 
         stat_table = section.find('table')
-        if stat_table != None:
+        if stat_table is not None:
             table_body = stat_table.find('tbody')
             rows = table_body.find('tr')
 
             for row in rows:
-                if row.attrib.get('class') == None:
+                if row.attrib.get('class') is None:
                     stats.extend(self.process_row(
                         player_stat_items, row, team_id, game_id, 'O'))
         return stats
@@ -320,17 +324,18 @@ class BoxscoreHelper:
         ]
 
         stat_table = section.find('table')
-        if stat_table != None:
+        if stat_table is not None:
             table_body = stat_table.find('tbody')
             rows = table_body.find('tr')
 
             for row in rows:
-                if row.attrib.get('class') == None:
+                if row.attrib.get('class') is None:
                     stats.extend(self.process_row(
                         player_stat_items, row, team_id, game_id, 'D'))
         return stats
 
-    def build_interception_statistics(self, team_id: int, game_id: int, section: HtmlElement) -> list:
+    def build_interception_statistics(self, team_id: int, game_id: int,
+                                      section: HtmlElement) -> list:
         """
         Creates Statistics for the Interceptions section.
 
@@ -349,17 +354,18 @@ class BoxscoreHelper:
         ]
 
         stat_table = section.find('table')
-        if stat_table != None:
+        if stat_table is not None:
             table_body = stat_table.find('tbody')
             rows = table_body.find('tr')
 
             for row in rows:
-                if row.attrib.get('class') == None:
+                if row.attrib.get('class') is None:
                     stats.extend(self.process_row(
                         player_stat_items, row, team_id, game_id, 'D'))
         return stats
 
-    def build_kick_return_statistics(self, team_id: int, game_id: int, section: HtmlElement) -> list:
+    def build_kick_return_statistics(self, team_id: int, game_id: int,
+                                     section: HtmlElement) -> list:
         """
         Creates Statistics for the Kick Returns section.
 
@@ -381,17 +387,18 @@ class BoxscoreHelper:
         ]
 
         stat_table = section.find('table')
-        if stat_table != None:
+        if stat_table is not None:
             table_body = stat_table.find('tbody')
             rows = table_body.find('tr')
 
             for row in rows:
-                if row.attrib.get('class') == None:
+                if row.attrib.get('class') is None:
                     stats.extend(self.process_row(
                         player_stat_items, row, team_id, game_id, 'S'))
         return stats
 
-    def build_punt_return_statistics(self, team_id: int, game_id: int, section: HtmlElement) -> list:
+    def build_punt_return_statistics(self, team_id: int, game_id: int,
+                                     section: HtmlElement) -> list:
         """
         Creates statistics for the Punt Returns Section.
 
@@ -413,12 +420,12 @@ class BoxscoreHelper:
         ]
 
         stat_table = section.find('table')
-        if stat_table != None:
+        if stat_table is not None:
             table_body = stat_table.find('tbody')
             rows = table_body.find('tr')
 
             for row in rows:
-                if row.attrib.get('class') == None:
+                if row.attrib.get('class') is None:
                     stats.extend(self.process_row(
                         player_stat_items, row, team_id, game_id, 'S'))
         return stats
@@ -441,12 +448,12 @@ class BoxscoreHelper:
         ]
 
         stat_table = section.find('table')
-        if stat_table != None:
+        if stat_table is not None:
             table_body = stat_table.find('tbody')
             rows = table_body.find('tr')
 
             for row in rows:
-                if row.attrib.get('class') == None:
+                if row.attrib.get('class') is None:
                     player_row = pq(row)
                     player_column = player_row('td.name')
                     ref = player_column.find('a')
@@ -520,12 +527,12 @@ class BoxscoreHelper:
         ]
 
         stat_table = section.find('table')
-        if stat_table != None:
+        if stat_table is not None:
             table_body = stat_table.find('tbody')
             rows = table_body.find('tr')
 
             for row in rows:
-                if row.attrib.get('class') == None:
+                if row.attrib.get('class') is None:
                     stats.extend(self.process_row(
                         player_stat_items, row, team_id, game_id, 'S'))
         return stats

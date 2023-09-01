@@ -5,19 +5,24 @@ Schedule Module for Converting Schedule Entries from the listing.
 from urllib.parse import parse_qs, urljoin, urlparse
 
 from lxml.html import HtmlElement
-from pyquery import PyQuery as pq
+from pyquery import PyQuery
 
 
 class ScheduleHelper:
+    """
+    Helper Class for working with Schedules.
+    """
+    base_url: str = 'https://www.espn.com'
+    document: PyQuery
 
-    document: pq
-
-    def __init__(self, doc: str):
+    def __init__(self, doc: str, **kwargs):
         """
         Constructor
         """
 
-        self.document = pq(doc)
+        self.document = PyQuery(doc)
+        if 'base_url' in kwargs:
+            self.base_url = kwargs['base_url']
 
     def get_schedule_entries(self, week: int, year: int, type_code: str) -> list:
         """
@@ -44,7 +49,8 @@ class ScheduleHelper:
 
         return schedule_entries
 
-    def build_entries_from_row(self, row: HtmlElement, year: int, week: int, type_code: str) -> list:
+    def build_entries_from_row(self, row: HtmlElement, year: int, week: int,
+                               type_code: str) -> list:
         """
         Builds a Set of Schedule Entries from a Row
 
@@ -62,14 +68,16 @@ class ScheduleHelper:
         schedule_entries = []
         columns = row.findall('td')
         for column in columns:
-            column_doc = pq(column)
+            column_doc = PyQuery(column)
             refs = column_doc('a.AnchorLink')
             for ref in refs:
                 href = ref.attrib.get('href')
-                if 'player' not in href and href not in links and 'accuweather' not in href and 'vividseats' not in href:
+                if 'player' not in href and href not in links \
+                        and 'accuweather' not in href \
+                        and 'vividseats' not in href:
                     links.append(href)
         if len(links) == 3:
-            game_url = urljoin('https://www.espn.com', links.pop())
+            game_url = urljoin(self.base_url, links.pop())
             away_team = links.pop()
             home_team = links.pop()
 
@@ -77,8 +85,8 @@ class ScheduleHelper:
             game_id = parse_qs(parsed_url.query).get('gameId', [0])[0]
             if int(game_id) > 0:
                 schedule_entries.append({
-                    'teamUrl': urljoin('https://www.espn.com', home_team),
-                    'opponentUrl': urljoin('https://www.espn.com', away_team),
+                    'teamUrl': urljoin(self.base_url, home_team),
+                    'opponentUrl': urljoin(self.base_url, away_team),
                     'url': game_url,
                     'year': year,
                     'week': week,
@@ -87,8 +95,8 @@ class ScheduleHelper:
                     'gameId': int(game_id)
                 })
                 schedule_entries.append({
-                    'opponentUrl': urljoin('https://www.espn.com', home_team),
-                    'teamUrl': urljoin('https://www.espn.com', away_team),
+                    'opponentUrl': urljoin(self.base_url, home_team),
+                    'teamUrl': urljoin(self.base_url, away_team),
                     'url': game_url,
                     'year': year,
                     'week': week,
