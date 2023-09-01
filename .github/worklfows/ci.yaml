@@ -2,7 +2,7 @@ name: CI_UNIT_TESTS
 on: push
 
 jobs:
-  test:
+test:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -10,6 +10,31 @@ jobs:
         uses: actions/setup-python@v4
         with:
             python-version: '3.11'
-      - run: pip install pipenv
-      - run: pipenv install --dev --system
-      - run: pytest
+      - name: Install PipEnv
+        run: pip install pipenv --user
+      - name: Install Dependencies
+        run: pipenv sync --system --dev
+      - name: Run Pytest with Coverage
+        run: pytest --cov-report term --cov=src/ tests/
+analysis:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+      - name: Install PipEnv
+        run: pip install pipenv --user
+      - name: Install Dependencies
+        run: pipenv sync --system --dev
+      - name: MyPy
+        run: mypy src/ --ignore-missing-imports
+      - name: PyLint
+        run: pylint src/
+      - name: PyCodestyle
+        run: pycodestyle src/ --max-line-length 100
+      - name: PyFlakes
+        run: pyflakes src/
+      - name: Bandit
+        run: bandit -r src/
