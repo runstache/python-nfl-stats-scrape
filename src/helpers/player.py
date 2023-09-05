@@ -2,104 +2,65 @@
 Player Helper Class to build and submit Players to the API.
 """
 
-import logging
-from urllib.parse import urljoin
-
-import requests
-from pyquery import PyQuery
-from requests.exceptions import RequestException
-
-from helpers.positions import PositionHelper
+from sqlalchemy.orm import sessionmaker
+from football_data.models import Player, Position
+from football_data.repositories import PlayerRepository, PositionCodeRepository
+from selenium import webdriver
 
 
 class PlayerHelper:
-    api_url: str
-    player_url: str
+    maker: sessionmaker
 
-    def __init__(self, url: str, api_base_url: str) -> None:
-
-        self.player_url = url
-        self.api_url = urljoin(api_base_url, '/api/player')
-        logging.basicConfig(level=logging.INFO)
-
-    def load_player_data(self) -> PyQuery | None:
+    def __init__(self, maker: sessionmaker) -> None:
         """
-        Retrieves the data from the Url and Loads to PyQuery
-
-        Returns:
-            pq: PyQuery
+        Constructor.
+        Args:
+            maker: Session Maker
         """
+        self.maker = maker
 
-        success = False
-        count = 0
-        max_attempts = 5
-        while not success and count <= max_attempts:
-            try:
-                response = requests.get(self.player_url, timeout=60)
-
-                if response.status_code == 200:
-                    return PyQuery(response.text)
-                else:
-                    success = False
-            except (TimeoutError, RequestException):
-                logging.warning('PLAYER RETRIEVAL ISSUE')
-                success = False
-            count = count + 1
-
-        return None
-
-    def add_player_information(self, player: dict) -> None:
+    def resolve_player(self, url: str) -> Player:
         """
-        Adds the Player information to the API.
+        Resolves the Player against the Database. Adds the player if they do not exist.
+        Args:
+            url: Player Url
+
+        Returns: Player
+        """
+        repo = PlayerRepository(self.maker)
+        player = repo.get_player(url=url)
+        if player:
+            return player
+        return self.build_player(url)
+
+    def build_player(self, url: str) -> Player | None:
+        """
+        Builds a Player from the Url Site
+        Args:
+            url: Site Url
+
+        Returns: Player
         """
 
-        max_retries = 5
-        count = 0
-        success = False
+        options = webdriver.ChromeOptions()
+        options.add_argument('--headless')
+        options.add_argument('--ignore-certificate-errors')
 
-        while not success and count <= max_retries:
-            try:
-                response = requests.post(self.api_url, json=player)
-                success = True
-                if response.status_code != 200:
-                    logging.warning(f"PLAYER SAVE POSSIBLY FAILED: {self.player_url}")
-                    success = False
-            except RequestException:
-                logging.warning('ISSUE SAVING PLAYER TO API, RETRYING...')
-                success = False
-            count = count + 1
+        browser = webdriver.Chrome(options=options)
+        browser.get(url)
+        player_result: dict = browser.execute_script('return window.__espnfitt__')
+        browser.quit()
 
-    def build_player(self) -> dict | None:
-        """
-        Creates a player model to submit to the api.
+        player_info = player_result.get('page', {}).get('content', {}).get('player', {}).get(
+            'plyrHdr', {}).get('ath', {})
 
-        Returns:
-            dict: Player Model.
-        """
-
-        document = self.load_player_data()
-
-        if document is not None:
-            name_header = document('h1.PlayerHeader__Name')
-            pieces = name_header.find('span')
-
-            name = ''
-            for piece in pieces:
-                name = name + ' ' + piece.text
-
-            team_info = document('ul.PlayerHeader__Team_Info')
-
-            items = team_info.find('li')
-            position = None
-            helper = PositionHelper()
-            for item in items:
-                position = helper.translate_position(item.text)
-                if position:
-                    break
-
-            return {
-                'url': self.player_url,
-                'name': name.strip(),
-                'positionCode': position
-            }
+        if player_info:
+            position_code = player_info.get('posAbv')
+            if position_code:
+                pos_code_repo = PositionCodeRepository(self.maker)
+                code: Position = pos_code_repo.get_position_code(code=position_code)
+                player = Player(name=player_info.get('dspNm'), url=url, position_id=code.id)
+                player_repo = PlayerRepository(self.maker)
+                player_repo.save(player)
+                return player
         return None
