@@ -8,6 +8,7 @@ requests = "*"
 pyquery = "*"
 fake-useragent = "*"
 batch-football-data = "*"
+selenium = "*"
 
 [dev-packages]
 pytest = "*"
