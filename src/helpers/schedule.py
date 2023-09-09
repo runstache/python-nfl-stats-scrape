@@ -2,106 +2,125 @@
 Schedule Module for Converting Schedule Entries from the listing.
 """
 
-from urllib.parse import parse_qs, urljoin, urlparse
-
-from lxml.html import HtmlElement
-from pyquery import PyQuery
+from sqlalchemy.orm import sessionmaker
+from football_data.models import Schedule, Team
+from football_data.repositories import TeamRepository, ScheduleRepository
+from selenium import webdriver
 
 
 class ScheduleHelper:
     """
     Helper Class for working with Schedules.
     """
-    base_url: str = 'https://www.espn.com'
-    document: PyQuery
 
-    def __init__(self, doc: str, **kwargs):
+    maker: sessionmaker
+
+    def __init__(self, maker: sessionmaker):
         """
         Constructor
         """
+        self.maker = maker
 
-        self.document = PyQuery(doc)
-        if 'base_url' in kwargs:
-            self.base_url = kwargs['base_url']
-
-    def get_schedule_entries(self, week: int, year: int, type_code: str) -> list:
+    @staticmethod
+    def get_schedule(week_number: int, year_value: int, type_code: str) -> dict | None:
         """
-        Retrieves the Schedule values from the HTML Document.
-
+        Retrieves the Schedule Meta Data
         Args:
-            week (int): Week Number
-            year (int): Year Value
-            type_code (str): Season Type
+            week_number: Week Number
+            year_value: Year
+            type_code: Type Code (1,2,3)
 
-        Returns:
-            list: List of Schedule Entries
+        Returns: Dictionary
+
         """
+        schedule_url = f"https://www.espn.com/nfl/schedule/_/week/{week_number}" \
+                       + f"/year/{year_value}/seasontype/{type_code}"
 
-        schedule_tables = self.document('table.Table')
-        schedule_entries = []
-        for schedule_table in schedule_tables:
+        options = webdriver.ChromeOptions()
+        options.add_argument('--headless')
+        options.add_argument('--ignore-certificate-errors')
 
-            body = schedule_table.find('tbody')
-            rows = body.findall('tr')
-            for row in rows:
-                schedule_entries.extend(
-                    self.build_entries_from_row(row, year, week, type_code))
+        browser = webdriver.Chrome(options=options)
+        browser.get(schedule_url)
+        schedule_result: dict = browser.execute_script('return window.__espnfitt__')
+        browser.quit()
+        return schedule_result
 
-        return schedule_entries
-
-    def build_entries_from_row(self, row: HtmlElement, year: int, week: int,
-                               type_code: str) -> list:
+    def resolve_teams(self, event_item: dict) -> dict:
         """
-        Builds a Set of Schedule Entries from a Row
-
+        Resolves a Team to the Database and Adds it if it is not present.
         Args:
-            row (HtmlElement): Table Row
-            year (int): Year
-            week (int): Week
-            type_code (str): Type Code
+            event_item: Event Item
 
-        Returns:
-            list: List of Schedule Entries
+        Returns: Team
+        """
+        result = {}
+        teams: list[dict] = event_item.get('teams', [])
+        for team in teams:
+            team_code = team.get('abbrev')
+            if team_code:
+                repo = TeamRepository(self.maker)
+                team_item = repo.get_team(code=team_code)
+                if not team_item:
+                    team_item = Team(code=team_code, name=team.get('displayName'),
+                                     url=team.get('links'))
+                    repo.save(team_item)
+                if team.get('isHome', False) is True:
+                    result['home_team'] = team_item
+                else:
+                    result['away_team'] = team_item
+
+        return result
+
+    def resolve_schedule(self, team_id: int, opponent_id: int, game_id: int, year: int, week: int,
+                         url: str, is_home: bool, type_id: int) -> Schedule:
+        """
+        Resolves the Schedule from the Database or creates a new one.
+        Args:
+            team_id: Team ID
+            opponent_id: Opponent ID
+            game_id: Event
+            year: Year Value
+            week: Week Value
+            url: Game Url
+            is_home: Denotes it is for the home team.
+            type_id: Schedule Type (1,2,3)
+
+        Returns: Schedule
         """
 
-        links = []
-        schedule_entries = []
-        columns = row.findall('td')
-        for column in columns:
-            column_doc = PyQuery(column)
-            refs = column_doc('a.AnchorLink')
-            for ref in refs:
-                href = ref.attrib.get('href')
-                if 'player' not in href and href not in links \
-                        and 'accuweather' not in href \
-                        and 'vividseats' not in href:
-                    links.append(href)
-        if len(links) == 3:
-            game_url = urljoin(self.base_url, links.pop())
-            away_team = links.pop()
-            home_team = links.pop()
+        repo = ScheduleRepository(self.maker)
+        schedule = repo.get_schedule(team_id=team_id, game_id=game_id)
+        if not schedule:
+            schedule = Schedule(team_id=team_id, opponent_id=opponent_id, game_id=game_id,
+                                week_number=week, year_value=year, url=url, type_id=type_id,
+                                is_home=is_home)
+            repo.save(schedule)
+        return schedule
 
-            parsed_url = urlparse(game_url)
-            game_id = parse_qs(parsed_url.query).get('gameId', [0])[0]
-            if int(game_id) > 0:
-                schedule_entries.append({
-                    'teamUrl': urljoin(self.base_url, home_team),
-                    'opponentUrl': urljoin(self.base_url, away_team),
-                    'url': game_url,
-                    'year': year,
-                    'week': week,
-                    'typeCode': type_code,
-                    'homeGame': True,
-                    'gameId': int(game_id)
-                })
-                schedule_entries.append({
-                    'opponentUrl': urljoin(self.base_url, home_team),
-                    'teamUrl': urljoin(self.base_url, away_team),
-                    'url': game_url,
-                    'year': year,
-                    'week': week,
-                    'typeCode': type_code,
-                    'homeGame': False,
-                    'gameId': int(game_id)
-                })
-        return schedule_entries
+    def convert_event(self, event_item: dict, type_id: int, week: int, year: int) -> list[Schedule]:
+        """
+        Converts an Event to a list of schedule items.
+        Args:
+            event_item: Event Item
+            type_id: Schedule Type
+            week: Week Number
+            year: Year value
+
+        Returns: List of Schedule
+        """
+
+        teams = self.resolve_teams(event_item)
+        schedules = []
+        game_id = int(event_item.get('id', 0))
+        url = event_item.get('lnk', '')
+        if teams:
+            home_team = teams.get('home_team')
+            away_team = teams.get('away_team')
+            home_schedule = self.resolve_schedule(home_team.id, away_team.id, game_id, year, week,
+                                                  url, True, type_id)
+            away_schedule = self.resolve_schedule(away_team.id, home_team.id, game_id, year, week,
+                                                  url, True, type_id)
+            schedules.append(home_schedule)
+            schedules.append(away_schedule)
+        return schedules

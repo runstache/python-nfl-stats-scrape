@@ -1,0 +1,154 @@
+{
+  "broadcasts": [
+    {
+      "market": "National",
+      "name": "NBC",
+      "type": "TV"
+    }
+  ],
+  "competitors": [
+    {
+      "abbrev": "LAR",
+      "altColor": "ffd100",
+      "displayName": "Los Angeles Rams",
+      "id": "14",
+      "isHome": true,
+      "links": "/nfl/team/_/name/lar/los-angeles-rams",
+      "location": "Los Angeles",
+      "logo": "https://a.espncdn.com/i/teamlogos/nfl/500/scoreboard/lar.png",
+      "name": "Los Angeles Rams",
+      "recordSummary": "",
+      "score": 10,
+      "shortDisplayName": "Rams",
+      "shortName": "Rams",
+      "standingSummary": "",
+      "teamColor": "00295B",
+      "uid": "s:20~l:28~t:14"
+    },
+    {
+      "abbrev": "BUF",
+      "altColor": "d50a0a",
+      "displayName": "Buffalo Bills",
+      "id": "2",
+      "isHome": false,
+      "links": "/nfl/team/_/name/buf/buffalo-bills",
+      "location": "Buffalo",
+      "logo": "https://a.espncdn.com/i/teamlogos/nfl/500/scoreboard/buf.png",
+      "name": "Buffalo Bills",
+      "recordSummary": "",
+      "score": 31,
+      "shortDisplayName": "Bills",
+      "shortName": "Bills",
+      "standingSummary": "",
+      "teamColor": "04407F",
+      "uid": "s:20~l:28~t:2",
+      "winner": true
+    }
+  ],
+  "completed": true,
+  "date": "2022-09-09T00:20Z",
+  "format": {
+    "regulation": {
+      "periods": 4
+    }
+  },
+  "headerPostfix": "",
+  "id": "401437654",
+  "isTie": false,
+  "leaders": [
+    {
+      "abbrev": "PYDS",
+      "displayName": "Passing Leader",
+      "leader": {
+        "href": "http://www.espn.com/nfl/player/_/id/3918298/josh-allen",
+        "name": "Josh Allen",
+        "shortName": "J. Allen",
+        "uid": "",
+        "value": 297
+      },
+      "name": "passingYards"
+    },
+    {
+      "abbrev": "RYDS",
+      "displayName": "Rushing Leader",
+      "leader": {
+        "href": "http://www.espn.com/nfl/player/_/id/3918298/josh-allen",
+        "name": "Josh Allen",
+        "shortName": "J. Allen",
+        "uid": "",
+        "value": 56
+      },
+      "name": "rushingYards"
+    },
+    {
+      "abbrev": "RECYDS",
+      "displayName": "Receiving Leader",
+      "leader": {
+        "href": "http://www.espn.com/nfl/player/_/id/2977187/cooper-kupp",
+        "name": "Cooper Kupp",
+        "shortName": "C. Kupp",
+        "uid": "",
+        "value": 128
+      },
+      "name": "receivingYards"
+    }
+  ],
+  "link": "/nfl/game?gameId=401437654",
+  "status": {
+    "detail": "Final",
+    "id": "3",
+    "state": "post"
+  },
+  "tbd": false,
+  "teams": [
+    {
+      "abbrev": "LAR",
+      "altColor": "ffd100",
+      "displayName": "Los Angeles Rams",
+      "id": "14",
+      "isHome": true,
+      "links": "/nfl/team/_/name/lar/los-angeles-rams",
+      "location": "Los Angeles",
+      "logo": "https://a.espncdn.com/i/teamlogos/nfl/500/scoreboard/lar.png",
+      "name": "Los Angeles Rams",
+      "recordSummary": "",
+      "score": 10,
+      "shortDisplayName": "Rams",
+      "shortName": "Rams",
+      "standingSummary": "",
+      "teamColor": "00295B",
+      "uid": "s:20~l:28~t:14"
+    },
+    {
+      "abbrev": "BUF",
+      "altColor": "d50a0a",
+      "displayName": "Buffalo Bills",
+      "id": "2",
+      "isHome": false,
+      "links": "/nfl/team/_/name/buf/buffalo-bills",
+      "location": "Buffalo",
+      "logo": "https://a.espncdn.com/i/teamlogos/nfl/500/scoreboard/buf.png",
+      "name": "Buffalo Bills",
+      "recordSummary": "",
+      "score": 31,
+      "shortDisplayName": "Bills",
+      "shortName": "Bills",
+      "standingSummary": "",
+      "teamColor": "04407F",
+      "uid": "s:20~l:28~t:2",
+      "winner": true
+    }
+  ],
+  "tickets": {},
+  "timeValid": true,
+  "venue": {
+    "address": {
+      "city": "Inglewood",
+      "state": "CA"
+    },
+    "capacity": 71500,
+    "fullName": "SoFi Stadium",
+    "id": "7065",
+    "indoor": true
+  }
+}
