@@ -26,11 +26,11 @@
         },
         "batch-football-data": {
             "hashes": [
-                "sha256:24c42cb77e0d96b9d2478839ec57ecc620a9b76d7c82b7625f43438389ba91b6",
-                "sha256:d8d237f53fe07f80de63a781ad5fe5c6ec7ee343eb68c905126f28ec7e763733"
+                "sha256:734478e72eee15f2eb678329a74c1b6abc9f9dd77669a5118e87b8a5a387c9fa",
+                "sha256:a7b9072f1ceb829deb789190652f6a262e7957f25d3078d6cac5608d86b08e19"
             ],
             "index": "pypi",
-            "version": "==0.0.7"
+            "version": "==0.0.8"
         },
         "certifi": {
             "hashes": [
