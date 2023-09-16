@@ -156,3 +156,5 @@ score = true
 
 [mypy]
 mypy_path = "src/"
+
+[tool.bandit]
