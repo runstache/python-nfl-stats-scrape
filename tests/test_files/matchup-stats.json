@@ -1,0 +1,394 @@
+{
+  "tmStats": {
+    "away": {
+      "s": {
+        "completionAttempts": {
+          "d": "23-34",
+          "l": "Comp-Att",
+          "n": "completionAttempts"
+        },
+        "defensiveTouchdowns": {
+          "d": "0",
+          "l": "Defensive / Special Teams TDs",
+          "n": "defensiveTouchdowns"
+        },
+        "firstDowns": {
+          "d": "18",
+          "l": "1st Downs",
+          "n": "firstDowns"
+        },
+        "firstDownsPassing": {
+          "d": "12",
+          "l": "Passing 1st downs",
+          "n": "firstDownsPassing"
+        },
+        "firstDownsPenalty": {
+          "d": "1",
+          "l": "1st downs from penalties",
+          "n": "firstDownsPenalty"
+        },
+        "firstDownsRushing": {
+          "d": "5",
+          "l": "Rushing 1st downs",
+          "n": "firstDownsRushing"
+        },
+        "fourthDownEff": {
+          "d": "0-0",
+          "l": "4th down efficiency",
+          "n": "fourthDownEff"
+        },
+        "fumblesLost": {
+          "d": "1",
+          "l": "Fumbles lost",
+          "n": "fumblesLost"
+        },
+        "interceptions": {
+          "d": "0",
+          "l": "Interceptions thrown",
+          "n": "interceptions"
+        },
+        "netPassingYards": {
+          "d": "234",
+          "l": "Passing",
+          "n": "netPassingYards"
+        },
+        "possessionTime": {
+          "d": "26:16",
+          "l": "Possession",
+          "n": "possessionTime"
+        },
+        "redZoneAttempts": {
+          "d": "3-3",
+          "l": "Red Zone (Made-Att)",
+          "n": "redZoneAttempts"
+        },
+        "rushingAttempts": {
+          "d": "19",
+          "l": "Rushing Attempts",
+          "n": "rushingAttempts"
+        },
+        "rushingYards": {
+          "d": "151",
+          "l": "Rushing",
+          "n": "rushingYards"
+        },
+        "sacksYardsLost": {
+          "d": "4-35",
+          "l": "Sacks-Yards Lost",
+          "n": "sacksYardsLost"
+        },
+        "thirdDownEff": {
+          "d": "4-13",
+          "l": "3rd down efficiency",
+          "n": "thirdDownEff"
+        },
+        "totalDrives": {
+          "d": "12",
+          "l": "Total Drives",
+          "n": "totalDrives"
+        },
+        "totalOffensivePlays": {
+          "d": "57",
+          "l": "Total Plays",
+          "n": "totalOffensivePlays"
+        },
+        "totalPenaltiesYards": {
+          "d": "8-99",
+          "l": "Penalties",
+          "n": "totalPenaltiesYards"
+        },
+        "totalYards": {
+          "d": "385",
+          "l": "Total Yards",
+          "n": "totalYards"
+        },
+        "turnovers": {
+          "d": "1",
+          "l": "Turnovers",
+          "n": "turnovers"
+        },
+        "yardsPerPass": {
+          "d": "6.2",
+          "l": "Yards per pass",
+          "n": "yardsPerPass"
+        },
+        "yardsPerPlay": {
+          "d": "6.8",
+          "l": "Yards per Play",
+          "n": "yardsPerPlay"
+        },
+        "yardsPerRushAttempt": {
+          "d": "7.9",
+          "l": "Yards per rush",
+          "n": "yardsPerRushAttempt"
+        }
+      },
+      "t": {
+        "abbrv": "NO",
+        "dspNm": "New Orleans Saints",
+        "id": "18",
+        "lnk": "/nfl/team/_/name/no/new-orleans-saints",
+        "logo": "https://a.espncdn.com/i/teamlogos/nfl/500/no.png",
+        "srtDspNm": "Saints",
+        "tmClr": "#5a5c5d",
+        "uid": "s:20~l:28~t:18"
+      }
+    },
+    "home": {
+      "s": {
+        "completionAttempts": {
+          "d": "20-33",
+          "l": "Comp-Att",
+          "n": "completionAttempts"
+        },
+        "defensiveTouchdowns": {
+          "d": "1",
+          "l": "Defensive / Special Teams TDs",
+          "n": "defensiveTouchdowns"
+        },
+        "firstDowns": {
+          "d": "26",
+          "l": "1st Downs",
+          "n": "firstDowns"
+        },
+        "firstDownsPassing": {
+          "d": "8",
+          "l": "Passing 1st downs",
+          "n": "firstDownsPassing"
+        },
+        "firstDownsPenalty": {
+          "d": "5",
+          "l": "1st downs from penalties",
+          "n": "firstDownsPenalty"
+        },
+        "firstDownsRushing": {
+          "d": "13",
+          "l": "Rushing 1st downs",
+          "n": "firstDownsRushing"
+        },
+        "fourthDownEff": {
+          "d": "0-0",
+          "l": "4th down efficiency",
+          "n": "fourthDownEff"
+        },
+        "fumblesLost": {
+          "d": "2",
+          "l": "Fumbles lost",
+          "n": "fumblesLost"
+        },
+        "interceptions": {
+          "d": "0",
+          "l": "Interceptions thrown",
+          "n": "interceptions"
+        },
+        "netPassingYards": {
+          "d": "215",
+          "l": "Passing",
+          "n": "netPassingYards"
+        },
+        "possessionTime": {
+          "d": "33:44",
+          "l": "Possession",
+          "n": "possessionTime"
+        },
+        "redZoneAttempts": {
+          "d": "2-4",
+          "l": "Red Zone (Made-Att)",
+          "n": "redZoneAttempts"
+        },
+        "rushingAttempts": {
+          "d": "38",
+          "l": "Rushing Attempts",
+          "n": "rushingAttempts"
+        },
+        "rushingYards": {
+          "d": "201",
+          "l": "Rushing",
+          "n": "rushingYards"
+        },
+        "sacksYardsLost": {
+          "d": "0-0",
+          "l": "Sacks-Yards Lost",
+          "n": "sacksYardsLost"
+        },
+        "thirdDownEff": {
+          "d": "5-13",
+          "l": "3rd down efficiency",
+          "n": "thirdDownEff"
+        },
+        "totalDrives": {
+          "d": "13",
+          "l": "Total Drives",
+          "n": "totalDrives"
+        },
+        "totalOffensivePlays": {
+          "d": "71",
+          "l": "Total Plays",
+          "n": "totalOffensivePlays"
+        },
+        "totalPenaltiesYards": {
+          "d": "8-55",
+          "l": "Penalties",
+          "n": "totalPenaltiesYards"
+        },
+        "totalYards": {
+          "d": "416",
+          "l": "Total Yards",
+          "n": "totalYards"
+        },
+        "turnovers": {
+          "d": "2",
+          "l": "Turnovers",
+          "n": "turnovers"
+        },
+        "yardsPerPass": {
+          "d": "6.5",
+          "l": "Yards per pass",
+          "n": "yardsPerPass"
+        },
+        "yardsPerPlay": {
+          "d": "5.9",
+          "l": "Yards per Play",
+          "n": "yardsPerPlay"
+        },
+        "yardsPerRushAttempt": {
+          "d": "5.3",
+          "l": "Yards per rush",
+          "n": "yardsPerRushAttempt"
+        }
+      },
+      "t": {
+        "abbrv": "ATL",
+        "dspNm": "Atlanta Falcons",
+        "id": "1",
+        "lnk": "/nfl/team/_/name/atl/atlanta-falcons",
+        "logo": "https://a.espncdn.com/i/teamlogos/nfl/500/atl.png",
+        "srtDspNm": "Falcons",
+        "tmClr": "#000000",
+        "uid": "s:20~l:28~t:1"
+      }
+    },
+    "statMap": {
+      "completionAttempts": {
+        "d": "23-34",
+        "l": "Comp-Att",
+        "n": "completionAttempts"
+      },
+      "defensiveTouchdowns": {
+        "d": "0",
+        "l": "Defensive / Special Teams TDs",
+        "n": "defensiveTouchdowns"
+      },
+      "firstDowns": {
+        "d": "18",
+        "l": "1st Downs",
+        "n": "firstDowns"
+      },
+      "firstDownsPassing": {
+        "d": "12",
+        "l": "Passing 1st downs",
+        "n": "firstDownsPassing"
+      },
+      "firstDownsPenalty": {
+        "d": "1",
+        "l": "1st downs from penalties",
+        "n": "firstDownsPenalty"
+      },
+      "firstDownsRushing": {
+        "d": "5",
+        "l": "Rushing 1st downs",
+        "n": "firstDownsRushing"
+      },
+      "fourthDownEff": {
+        "d": "0-0",
+        "l": "4th down efficiency",
+        "n": "fourthDownEff"
+      },
+      "fumblesLost": {
+        "d": "1",
+        "l": "Fumbles lost",
+        "n": "fumblesLost"
+      },
+      "interceptions": {
+        "d": "0",
+        "l": "Interceptions thrown",
+        "n": "interceptions"
+      },
+      "netPassingYards": {
+        "d": "234",
+        "l": "Passing",
+        "n": "netPassingYards"
+      },
+      "possessionTime": {
+        "d": "26:16",
+        "l": "Possession",
+        "n": "possessionTime"
+      },
+      "redZoneAttempts": {
+        "d": "3-3",
+        "l": "Red Zone (Made-Att)",
+        "n": "redZoneAttempts"
+      },
+      "rushingAttempts": {
+        "d": "19",
+        "l": "Rushing Attempts",
+        "n": "rushingAttempts"
+      },
+      "rushingYards": {
+        "d": "151",
+        "l": "Rushing",
+        "n": "rushingYards"
+      },
+      "sacksYardsLost": {
+        "d": "4-35",
+        "l": "Sacks-Yards Lost",
+        "n": "sacksYardsLost"
+      },
+      "thirdDownEff": {
+        "d": "4-13",
+        "l": "3rd down efficiency",
+        "n": "thirdDownEff"
+      },
+      "totalDrives": {
+        "d": "12",
+        "l": "Total Drives",
+        "n": "totalDrives"
+      },
+      "totalOffensivePlays": {
+        "d": "57",
+        "l": "Total Plays",
+        "n": "totalOffensivePlays"
+      },
+      "totalPenaltiesYards": {
+        "d": "8-99",
+        "l": "Penalties",
+        "n": "totalPenaltiesYards"
+      },
+      "totalYards": {
+        "d": "385",
+        "l": "Total Yards",
+        "n": "totalYards"
+      },
+      "turnovers": {
+        "d": "1",
+        "l": "Turnovers",
+        "n": "turnovers"
+      },
+      "yardsPerPass": {
+        "d": "6.2",
+        "l": "Yards per pass",
+        "n": "yardsPerPass"
+      },
+      "yardsPerPlay": {
+        "d": "6.8",
+        "l": "Yards per Play",
+        "n": "yardsPerPlay"
+      },
+      "yardsPerRushAttempt": {
+        "d": "7.9",
+        "l": "Yards per rush",
+        "n": "yardsPerRushAttempt"
+      }
+    }
+  }
+}
