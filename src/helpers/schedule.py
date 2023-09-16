@@ -24,7 +24,7 @@ class ScheduleHelper:
     @staticmethod
     def get_schedule(week_number: int, year_value: int, type_code: str) -> dict | None:
         """
-        Retrieves the Schedule Meta Data
+        Retrieves the Schedule Metadata
         Args:
             week_number: Week Number
             year_value: Year
