@@ -2,501 +2,174 @@
 Team Helper Class for retrieving statistics.
 """
 
-from lxml.html import HtmlElement
-from pyquery import PyQuery
+from sqlalchemy.orm import sessionmaker
+from football_data.models import StatisticCode, Statistic, StatisticCategory
+from football_data.repositories import StatisticCodeRepository, StatisticCategoryRepository
+from selenium import webdriver
 
 
-class MatchupHelper:
+class MatchUpHelper:
     """
     Helper Class for working with Team Level Stats.
     """
-    document: PyQuery
-    base_api_url: str
+    maker: sessionmaker
+    codes: list[StatisticCode]
+    category: StatisticCategory
+    translations: dict
 
-    def __init__(self, doc: str, api_url: str) -> None:
-        self.base_api_url = api_url
-        self.document = PyQuery(doc)
+    def __init__(self, maker: sessionmaker) -> None:
+        self.maker = maker
 
-    @staticmethod
-    def split_value(value: str, delimiter: str) -> tuple | None:
-        """
-        Returns a Tuple of the split value.
+        cat_repo = StatisticCategoryRepository(maker)
+        code_repo = StatisticCodeRepository(maker)
+        self.codes = code_repo.get_statistic_codes(grouping='team')
+        self.category = cat_repo.get_statistic_category(code='T')
+        self.translations = {
+            'completionAttempts': ['PC', 'PA'],
+            'defensiveTouchdowns': ['DTD'],
+            'firstDownsPassing': ['P1D'],
+            'firstDownsRushing': ['R1D'],
+            'fourthDownEff': ['4DC', '4DA'],
+            'fumblesLost': ['FLOST'],
+            'interceptions': ['INT'],
+            'netPassingYards': ['PYDS'],
+            'possessionTime': ['TOP'],
+            'redZoneAttempts': ['RZC', 'RZA'],
+            'rushingAttempts': ['RA'],
+            'rushingYards': ['RYDS'],
+            'thirdDownEff': ['3DC', '3DA'],
+            'totalDrives': ['DRV'],
+            'totalOffensivePlays': ['PLAY'],
+            'totalPenaltiesYards': ['PEN', 'PENYDS'],
+            'totalYards': ['YDS'],
+            'turnovers': ['TO'],
+            'yardsPerPass': ['PSAVG'],
+            'yardsPerPlay': ['YPP'],
+            'yardsPerRushAttempt': ['RAVG']
 
-        Args:
-            value (str): Value to split
-            delimiter (str): delimiter
-
-        Returns:
-            tuple: Touple of value
-        """
-
-        parts = value.split(delimiter)
-        if parts:
-            return int(parts[0]), int(parts[1])
-        return None
-
-    @staticmethod
-    def find_row(table: HtmlElement | PyQuery, identifier: str) -> PyQuery | None:
-        """
-        Finds a given row in the Row collection
-
-        Args:
-            table (HtmlElement | PyQuery): Collection of rows
-            identifier (str): Row Identifier
-
-        Returns:
-            HtmlElement: Row Html Element
-        """
-
-        doc = PyQuery(table)
-        row = doc.find('tr[data-stat-attr=' + identifier + ']')
-
-        if len(row) > 1:
-            return PyQuery(row[0])
-        else:
-            return row if row else None
+        }
 
     @staticmethod
-    def process_row(row: PyQuery, home_id: int, away_id: int, game_id: int, code: str,
-                    type_code: str) -> list | None:
+    def get_match_up(game_id: str) -> dict | None:
         """
-        Processes a row into a list of statistics
-
+        Retrieves the Match up data.
         Args:
-            row (HtmlElement): Row to process
-            home_id (int): Home team id
-            away_id (int): Away team id
-            game_id (int): Game Id
-            code (str): Stat Code
-            type_code (str): Type Code
-        Returns:
-            list: collection of stats
+            game_id: Game Id
+
+        Returns: Match Up Data Dictionary
+        """
+        url = f"https://www.espn.com/nfl/matchup/_/gameId/{game_id}"
+        options = webdriver.ChromeOptions()
+        options.add_argument('--headless')
+        options.add_argument('--ignore-certificate-errors')
+
+        browser = webdriver.Chrome(options=options)
+        browser.get(url)
+        return browser.execute_script('return window.__espnfitt__')
+
+    @staticmethod
+    def convert_value(value: str) -> float:
+        """
+        Converts String to Fload value.
+        Returns: Float Value
+        """
+        try:
+            if ':' in value:
+                split_values = value.split(':')
+                return (MatchUpHelper.convert_value(
+                    split_values[0]) * 60) + MatchUpHelper.convert_value(split_values[1])
+            return float(value)
+        except ValueError:
+            return 0
+
+    def get_statistic_code(self, code: str) -> StatisticCode | None:
+        """
+        Retrieves a Statistic Code from the listing.
+        Args:
+            code: Code Value
+
+        Returns: Statistic Code
         """
 
-        columns = []
-        if row:
-            columns = row.find('td')
-
-        if len(columns) == 3:
-            away_value = str(columns[1].text).strip()
-            home_value = str(columns[2].text).strip()
-            items = [
-                (away_value, away_id),
-                (home_value, home_id)
-            ]
-            stats = []
-            for item in items:
-                stats.append({
-                    'statisticCode': code,
-                    'value': float(item[0]),
-                    'gameId': game_id,
-                    'teamId': item[1],
-                    'categoryCode': type_code
-                })
-
-            return stats
+        result = list(
+            filter(lambda x:
+                   str(x.code).upper() == code.upper(), self.codes))
+        if result:
+            return result[0]
         return None
 
-    def get_redzone_efficiency(self, table: HtmlElement | PyQuery, home_id: int, away_id: int,
-                               game_id: int) -> list | None:
+    def build_statistic(self, values: dict, code: str, team_id: int,
+                        schedule_id: int) -> Statistic | None:
         """
-        Returns the Red zone efficiency.
-
+        Converts a Statistic Value dictionary to a Statistic object
         Args:
-            table (HtmlElement) Stat Table
-            home_id (int): Home Id
-            away_id (int): Away Id
-            game_id (int): Game Id
+            values: Stat Values
+            code: Statistic Code
+            team_id: Team Id
+            schedule-id: Schedule ID
+
+        Returns: Statistics
+        """
+        code_value = self.get_statistic_code(code)
+        if not code_value:
+            return None
+
+        entry_value = self.convert_value(values.get('d', ''))
+        return Statistic(schedule_id=schedule_id, team_id=team_id, category_id=self.category.id,
+                         statistic_code_id=code_value.id, value=entry_value)
+
+    def build_split_statistic(self, values: dict, codes: list[str], team_id: int,
+                              schedule_id: int) -> list[Statistic]:
+        """
+        Creates a list of Statistics from a stat value needing split.
+        Args:
+            values: statistic value entry
+            codes: Codes in order of split
+            team_id: Team ID
+            schedule_id: Schedule ID
 
         Returns:
-            list|None: Collection of Stats
+
         """
-        columns = []
-        row = self.find_row(table, 'redZoneAttempts')
-        if row:
-            columns = row.find('td')
+        entry_value = values.get('d', '')
+        if not entry_value:
+            return []
 
-        if len(columns) == 3:
-            away_value = str(columns[1].text).strip()
-            home_value = str(columns[2].text).strip()
+        split_values = entry_value.split('-')
+        if len(split_values) != len(codes):
+            return []
 
-            items = [
-                (away_value, away_id),
-                (home_value, home_id)
-            ]
-            stats = []
-            for item in items:
-                values = self.split_value(item[0], '-')
-                if values:
-                    stats.append({
-                        'statisticCode': 'RZA',
-                        'value': values[1],
-                        'gameId': game_id,
-                        'teamId': item[1],
-                        'categoryCode': 'O'
-                    })
-                    stats.append({
-                        'statisticCode': 'RZC',
-                        'value': values[0],
-                        'gameId': game_id,
-                        'teamId': item[1],
-                        'categoryCode': 'O'
-                    })
-            return stats
-        return None
-
-    def get_third_down_efficiency(self, table: HtmlElement | PyQuery, home_id: int, away_id: int,
-                                  game_id: int) -> list | None:
-        """
-        Returns the Third down efficiency.
-
-        Args:
-            table (HtmlElement | PyQuery) Stat Table
-            home_id (int): Home Id
-            away_id (int): Away Id
-            game_id (int): Game Id
-
-        Returns:
-            list|None: Collection of Stats
-        """
-        columns = []
-        row = self.find_row(table, 'thirdDownEff')
-        if row:
-            columns = row.find('td')
-
-        if len(columns) == 3:
-            away_value = str(columns[1].text).strip()
-            home_value = str(columns[2].text).strip()
-
-            items = [
-                (away_value, away_id),
-                (home_value, home_id)
-            ]
-            stats = []
-            for item in items:
-                values = self.split_value(item[0], '-')
-                if values:
-                    stats.append({
-                        'statisticCode': '3DA',
-                        'value': values[1],
-                        'gameId': game_id,
-                        'teamId': item[1],
-                        'categoryCode': 'O'
-                    })
-                    stats.append({
-                        'statisticCode': '3DC',
-                        'value': values[0],
-                        'gameId': game_id,
-                        'teamId': item[1],
-                        'categoryCode': 'O'
-                    })
-            return stats
-        return None
-
-    def get_fourth_down_efficiency(self, table: HtmlElement | PyQuery, home_id: int, away_id: int,
-                                   game_id: int) -> list | None:
-        """
-        Gets the Fourth down efficiency.
-
-        Args:
-            table (HtmlElement | PyQuery) Stat Table
-            home_id (int): 
-            away_id (int): _description_
-            game_id (int): _description_
-
-        Returns:
-            list|None: Collection of Stats
-        """
-
-        columns = []
-        row = self.find_row(table, 'fourthDownEff')
-        if row:
-            columns = row.find('td')
-
-        if len(columns) == 3:
-            away_value = str(columns[1].text).strip()
-            home_value = str(columns[2].text).strip()
-
-            items = [
-                (away_value, away_id),
-                (home_value, home_id)
-            ]
-            stats = []
-            for item in items:
-                values = self.split_value(item[0], '-')
-                if values:
-                    stats.append({
-                        'statisticCode': '4DA',
-                        'value': values[1],
-                        'gameId': game_id,
-                        'teamId': item[1],
-                        'categoryCode': 'O'
-                    })
-                    stats.append({
-                        'statisticCode': '4DC',
-                        'value': values[0],
-                        'gameId': game_id,
-                        'teamId': item[1],
-                        'categoryCode': 'O'
-                    })
-            return stats
-        return None
-
-    def get_passing_efficiency(self, table: HtmlElement | PyQuery, home_id: int, away_id: int,
-                               game_id: int) -> list | None:
-        """
-        Retrieves the Passing efficiency.
-
-        Args:
-            table (HtmlElement | PyQuery) Stat Table
-            home_id (int): Home Id
-            away_id (int): Away Id
-            game_id (int): Game Id
-
-        Returns:
-            list|None: Collection of Stats
-        """
-
-        columns = []
-        row = self.find_row(table, 'completionAttempts')
-        if row:
-            columns = row.find('td')
-
-        if len(columns) == 3:
-            away_value = str(columns[1].text).strip()
-            home_value = str(columns[2].text).strip()
-
-            items = [
-                (away_value, away_id),
-                (home_value, home_id)
-            ]
-            stats = []
-            for item in items:
-                values = self.split_value(item[0], '-')
-                if values:
-                    stats.append({
-                        'statisticCode': 'PA',
-                        'value': values[1],
-                        'gameId': game_id,
-                        'teamId': item[1],
-                        'categoryCode': 'O'
-                    })
-                    stats.append({
-                        'statisticCode': 'PC',
-                        'value': values[0],
-                        'gameId': game_id,
-                        'teamId': item[1],
-                        'categoryCode': 'O'
-                    })
-            return stats
-        return None
-
-    def get_penalties(self, table: PyQuery | HtmlElement, home_id: int, away_id: int,
-                      game_id: int) -> list | None:
-        """
-        Retrieves the Penalties
-
-        Args:
-            table (HtmlElement) Stat Table
-            home_id (int): Home Id
-            away_id (int): Away Id
-            game_id (int): Game Id
-
-        Returns:
-            list|None: Collection of Stats
-        """
-
-        columns = []
-        row = self.find_row(table, 'totalPenaltiesYards')
-        if row:
-            columns = row.find('td')
-
-        if len(columns) == 3:
-            away_value = str(columns[1].text).strip()
-            home_value = str(columns[2].text).strip()
-
-            items = [
-                (away_value, away_id),
-                (home_value, home_id)
-            ]
-            stats = []
-            for item in items:
-                values = self.split_value(item[0], '-')
-                if values:
-                    stats.append({
-                        'statisticCode': 'PENYDS',
-                        'value': values[1],
-                        'gameId': game_id,
-                        'teamId': item[1],
-                        'categoryCode': 'T'
-                    })
-                    stats.append({
-                        'statisticCode': 'PEN',
-                        'value': values[0],
-                        'gameId': game_id,
-                        'teamId': item[1],
-                        'categoryCode': 'T'
-                    })
-            return stats
-        return None
-
-    def get_time_of_possession(self, table: HtmlElement | PyQuery, home_id: int, away_id: int,
-                               game_id: int) -> list | None:
-        """
-        Retrieves the Time of Possession.
-
-        Args:
-            table (HtmlElement | PyQuery) Stat Table
-            home_id (int): Home Id
-            away_id (int): Away Id
-            game_id (int): Game Id
-
-        Returns:
-            list|None: Collection of Stats
-        """
-        columns = []
-        row = self.find_row(table, 'possessionTime')
-        if row:
-            columns = row.find('td')
-
-        if len(columns) == 3:
-            away_value = str(columns[1].text).strip()
-            home_value = str(columns[2].text).strip()
-
-            items = [
-                (away_value, away_id),
-                (home_value, home_id)
-            ]
-            stats = []
-            for item in items:
-                values = self.split_value(item[0], ':')
-                if values:
-                    stats.append({
-                        'statisticCode': 'TOP',
-                        'value': float((values[0] * 60) + values[1]),
-                        'gameId': game_id,
-                        'teamId': item[1],
-                        'categoryCode': 'T'
-                    })
-            return stats
-        return None
-
-    def get_scores(self, home_id: str, away_id: str, game_id: str) -> list | None:
-        """
-        Retrieves the final scores from the page.
-
-        Args:
-            home_id (str): Home Team Id
-            away_id (str): Away Team Id
-            game_id (str): Game Id
-
-        Returns:
-            list|None: Collection of score stats.
-        """
-
-        table = self.document('#linescore')
-        body = table('tbody')
         stats = []
-        rows = body.find('tr')
-        if rows:
-            away_row = PyQuery(rows[0])
-            home_row = PyQuery(rows[1])
-
-            away_score_column = away_row.find('td.final-score')
-            home_score_column = home_row.find('td.final-score')
-
-            if away_score_column and home_score_column:
-                home_score = int(home_score_column.text()) if str(
-                    home_score_column.text()).isnumeric() else 0
-                away_score = int(away_score_column.text()) if str(
-                    away_score_column.text()).isnumeric() else 0
-
-                stats.append({
-                    'statisticCode': 'PTSA',
-                    'value': home_score,
-                    'gameId': int(game_id),
-                    'teamId': int(away_id),
-                    'categoryCode': 'T'
-                })
-
-                stats.append({
-                    'statisticCode': 'PTSA',
-                    'value': away_score,
-                    'gameId': int(game_id),
-                    'teamId': int(home_id),
-                    'categoryCode': 'T'
-                })
-
-                stats.append({
-                    'statisticCode': 'PTS',
-                    'value': home_score,
-                    'gameId': int(game_id),
-                    'teamId': int(home_id),
-                    'categoryCode': 'T'
-                })
-
-                stats.append({
-                    'statisticCode': 'PTS',
-                    'value': away_score,
-                    'gameId': int(game_id),
-                    'teamId': int(away_id),
-                    'categoryCode': 'T'
-                })
+        for split_value in split_values:
+            code_item = self.get_statistic_code(codes[split_values.index(split_value)])
+            if code_item:
+                stats.append(Statistic(team_id=team_id, schedule_id=schedule_id,
+                                       statistic_code_id=code_item.id,
+                                       value=self.convert_value(split_value),
+                                       category_id=self.category.id))
 
         return stats
 
-    def build_team_stats(self, home_id: int, away_id: int, game_id: int) -> list | None:
+    def generate_stats(self, team_id: int, schedule_id: int, entries: dict) -> list[Statistic]:
         """
-        Retrieves the values from the Match Up information and provides a 
-        collection of statistics.
-
+        Generates the Statistic entries for provided team and schedule id
         Args:
-            home_id (int): home team id
-            away_id (int): away team id
-            game_id (int) game id
+            team_id: Team Id
+            schedule_id: Schedule id
+            entries: Stats entries
 
-        Returns:
-            list: _description_
+        Returns: List of statistics
         """
-
-        section = self.document('#gamepackage-matchup')
-        table = section('table.mod-data')
-        body = table('tbody')
         stats = []
-        items = [
-            ('firstDownsPassing', 'P1D', 'O'),
-            ('firstDownsRushing', 'R1D', 'O'),
-            ('totalOffensivePlays', 'PLAY', 'O'),
-            ('totalYards', 'YDS', 'O'),
-            ('totalDrives', 'DRV', 'O'),
-            ('yardsPerPlay', 'YPP', 'O'),
-            ('netPassingYards', 'PYDS', 'O'),
-            ('yardsPerPass', 'PSAVG', 'O'),
-            ('interceptions', 'PINT', 'O'),
-            ('rushingYards', 'RYDS', 'O'),
-            ('rushingAttempts', 'RCAR', 'O'),
-            ('yardsPerRushAttempt', 'RAVG', 'O'),
-            ('turnovers', 'TO', 'T'),
-            ('fumblesLost', 'FLOST', 'T'),
-            ('defensiveTouchdowns', 'TD', 'D')
-        ]
-
-        for item in items:
-            row = self.find_row(body, item[0])
-            results = self.process_row(
-                row, home_id, away_id, game_id, item[1], item[2])
-            if results:
-                stats.extend(results)
-            stats.extend(self.get_fourth_down_efficiency(body, home_id, away_id, game_id))
-            stats.extend(self.get_passing_efficiency(body, home_id, away_id, game_id))
-            stats.extend(self.get_penalties(body, home_id, away_id, game_id))
-            stats.extend(self.get_redzone_efficiency(body, home_id, away_id, game_id))
-            stats.extend(self.get_third_down_efficiency(body, home_id, away_id, game_id))
-            stats.extend(self.get_time_of_possession(body, home_id, away_id, game_id))
-
-        # Get the Score
-        scores = self.get_scores(str(home_id), str(away_id), str(game_id))
-        if scores:
-            stats.extend(scores)
+        for key in entries:
+            translation = self.translations.get(key, [])
+            values = dict(entries[key])
+            if len(translation) > 1:
+                stats.extend(self.build_split_statistic(values, translation, team_id, schedule_id))
+            else:
+                if len(translation) == 1:
+                    stat = self.build_statistic(values, translation[0], team_id, schedule_id)
+                    if stat:
+                        stats.append(stat)
 
         return stats

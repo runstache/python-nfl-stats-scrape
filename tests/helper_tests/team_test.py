@@ -4,16 +4,20 @@ Tests for the MatchupHelper.
 
 from assertpy import assert_that
 
-from src.helpers.team import MatchupHelper
+from src.helpers.team import MatchUpHelper
+import json
+from sqlalchemy import create_engine, select
+from sqlalchemy.orm import sessionmaker
 
-TEST_FILE = './tests/test_files/teams.html'
-API_URL = 'http://localhost/api'
-TEAM_ID = 1
-AWAY_ID = 2
-GAME_ID = 323
+from football_data.models import Team, Statistic, Schedule, StatisticCategory, StatisticCode
+from football_data.repositories import StatisticCodeRepository
+import csv
+
+TEST_FILE = './tests/test_files/matchup-stats.json'
+STATS_CODES = './tests/test_files/team_statistic_codes.csv'
 
 
-def load_test_file() -> str:
+def load_test_file() -> dict:
     """
     Loads the Test File HTML
 
@@ -22,578 +26,142 @@ def load_test_file() -> str:
     """
 
     with open(TEST_FILE, 'r', encoding='utf-8') as test_file:
-        return test_file.read()
+        return json.load(test_file)
 
 
-def test_passing_first_downs():
+def load_stats_codes(maker: sessionmaker) -> None:
     """
-    Tests retrieving the first downs from the stats.
-    """
-
-    doc = load_test_file()
-    helper = MatchupHelper(doc, API_URL)
-
-    stats = helper.build_team_stats(TEAM_ID, AWAY_ID, GAME_ID)
-
-    assert_that(stats).contains({'statisticCode': 'P1D',
-                                 'value': 14,
-                                 'gameId': GAME_ID,
-                                 'teamId': TEAM_ID,
-                                 'categoryCode': 'O'
-                                 }) \
-        .contains({'statisticCode': 'P1D',
-                   'value': 15,
-                   'gameId': GAME_ID,
-                   'teamId': AWAY_ID,
-                   'categoryCode': 'O'
-                   })
-
-
-def test_rushing_first_downs():
-    """
-    Tests retrieving Rushing First downs
+    Loads the Statistic Codes into the session.
+    Args:
+        maker: session maker
+    Returns: None
     """
 
-    doc = load_test_file()
-    helper = MatchupHelper(doc, API_URL)
-
-    stats = helper.build_team_stats(TEAM_ID, AWAY_ID, GAME_ID)
-
-    assert_that(stats).contains({'statisticCode': 'R1D',
-                                 'value': 3,
-                                 'gameId': GAME_ID,
-                                 'teamId': TEAM_ID,
-                                 'categoryCode': 'O'
-                                 }) \
-        .contains({'statisticCode': 'R1D',
-                   'value': 7,
-                   'gameId': GAME_ID,
-                   'teamId': AWAY_ID,
-                   'categoryCode': 'O'
-                   })
+    repo = StatisticCodeRepository(maker)
+    csv.register_dialect('input', delimiter=',')
+    with open(STATS_CODES, 'r', encoding='utf-8') as input_file:
+        reader: list[dict] = list(
+            csv.DictReader(input_file, dialect='input'))
+        for item in reader:
+            code = StatisticCode(code=item.get('code', ''), description=item.get('description', ''),
+                                 grouping=item.get('grouping', ''))
+            repo.save(code)
 
 
-def test_third_down_efficiency():
+def build_maker() -> sessionmaker:
     """
-    Tests retrieving the 3rd Down Efficiency
-    """
-    doc = load_test_file()
-    helper = MatchupHelper(doc, API_URL)
+    Builds a session maker.
+    Returns: Session Maker
 
-    stats = helper.build_team_stats(TEAM_ID, AWAY_ID, GAME_ID)
-
-    assert_that(stats).contains({'statisticCode': '3DA',
-                                 'value': 13,
-                                 'gameId': GAME_ID,
-                                 'teamId': TEAM_ID,
-                                 'categoryCode': 'O'
-                                 }) \
-        .contains({'statisticCode': '3DA',
-                   'value': 10,
-                   'gameId': GAME_ID,
-                   'teamId': AWAY_ID,
-                   'categoryCode': 'O'
-                   }) \
-        .contains({'statisticCode': '3DC',
-                   'value': 6,
-                   'gameId': GAME_ID,
-                   'teamId': TEAM_ID,
-                   'categoryCode': 'O'
-                   }) \
-        .contains({'statisticCode': '3DC',
-                   'value': 9,
-                   'gameId': GAME_ID,
-                   'teamId': AWAY_ID,
-                   'categoryCode': 'O'
-                   })
-
-
-def test_fourth_down_conversion():
-    """
-    Tests getting fourth down conversion rate.
     """
 
-    doc = load_test_file()
-    helper = MatchupHelper(doc, API_URL)
-
-    stats = helper.build_team_stats(TEAM_ID, AWAY_ID, GAME_ID)
-
-    assert_that(stats).contains({'statisticCode': '4DA',
-                                 'value': 3,
-                                 'gameId': GAME_ID,
-                                 'teamId': TEAM_ID,
-                                 'categoryCode': 'O'
-                                 }) \
-        .contains({'statisticCode': '4DA',
-                   'value': 0,
-                   'gameId': GAME_ID,
-                   'teamId': AWAY_ID,
-                   'categoryCode': 'O'
-                   }) \
-        .contains({'statisticCode': '4DC',
-                   'value': 2,
-                   'gameId': GAME_ID,
-                   'teamId': TEAM_ID,
-                   'categoryCode': 'O'
-                   }) \
-        .contains({'statisticCode': '4DC',
-                   'value': 0,
-                   'gameId': GAME_ID,
-                   'teamId': AWAY_ID,
-                   'categoryCode': 'O'
-                   })
+    engine = create_engine("sqlite://")
+    StatisticCode.metadata.create_all(bind=engine)
+    StatisticCategory.metadata.create_all(bind=engine)
+    return sessionmaker(bind=engine, expire_on_commit=False)
 
 
-def test_total_plays():
+def test_build_statistic():
     """
-    Tests getting the total plays
+    Tests building a Statistic.
     """
+    maker = build_maker()
+    payload = load_test_file()
+    team_stats = payload.get('tmStats', {})
+    home_stats = team_stats.get('home', {}).get('s', {})
 
-    doc = load_test_file()
-    helper = MatchupHelper(doc, API_URL)
+    stat_repo = StatisticCodeRepository(maker)
+    stat_repo.save(StatisticCode(code='DTD', description='Defensive Touchdowns', grouping='team'))
+    stat_repo.save(StatisticCategory(code='T', description='Team'))
 
-    stats = helper.build_team_stats(TEAM_ID, AWAY_ID, GAME_ID)
+    helper = MatchUpHelper(maker)
+    result = helper.build_statistic(home_stats.get('defensiveTouchdowns', {}), 'DTD', 1, 1)
 
-    assert_that(stats).contains({'statisticCode': 'PLAY',
-                                 'value': 66,
-                                 'gameId': GAME_ID,
-                                 'teamId': TEAM_ID,
-                                 'categoryCode': 'O'
-                                 }) \
-        .contains({'statisticCode': 'PLAY',
-                   'value': 58,
-                   'gameId': GAME_ID,
-                   'teamId': AWAY_ID,
-                   'categoryCode': 'O'
-                   })
+    assert_that(result).is_not_none()
+    assert_that([result]).extracting('value').contains(1)
 
 
-def test_total_yards():
+def test_build_statistic_split_value():
     """
-    Tests getting the total yards
+    Tests Building a Statistic with a split value
     """
+    maker = build_maker()
+    payload = load_test_file()
+    team_stats = payload.get('tmStats', {})
+    home_stats = team_stats.get('home', {}).get('s', {})
 
-    doc = load_test_file()
-    helper = MatchupHelper(doc, API_URL)
+    stat_repo = StatisticCodeRepository(maker)
+    pa_code = StatisticCode(code='PA', description='Passing Attemtps', grouping='team')
+    stat_repo.save(pa_code)
+    pc_code = StatisticCode(code='PC', description='Passing Completions', grouping='team')
+    stat_repo.save(pc_code)
+    stat_repo.save(StatisticCategory(code='T', description='Team'))
 
-    stats = helper.build_team_stats(TEAM_ID, AWAY_ID, GAME_ID)
+    helper = MatchUpHelper(maker)
+    results = helper.build_split_statistic(home_stats.get('completionAttempts', {}), ['PC', 'PA'],
+                                           1, 1)
 
-    assert_that(stats).contains({'statisticCode': 'YDS',
-                                 'value': 243,
-                                 'gameId': GAME_ID,
-                                 'teamId': TEAM_ID,
-                                 'categoryCode': 'O'
-                                 }) \
-        .contains({'statisticCode': 'YDS',
-                   'value': 413,
-                   'gameId': GAME_ID,
-                   'teamId': AWAY_ID,
-                   'categoryCode': 'O'
-                   })
+    assert_that(results).is_not_empty()
+    assert_that(list(filter(lambda x: x.value == 33 and x.statistic_code_id == pa_code.id,
+                            results))).is_not_empty()
+    assert_that(
+        list(filter(lambda x: x.value == 20 and x.statistic_code_id == pc_code.id,
+                    results))).is_not_empty()
 
 
-def test_total_drives():
+def test_build_statistic_no_value():
     """
-    Tests getting the total drives
+    Tests building a statistic with no entry value.
+    """
+    maker = build_maker()
+    stat_repo = StatisticCodeRepository(maker)
+    stat_repo.save(StatisticCode(code='PA', description='Passing Attemtps', grouping='team'))
+    stat_repo.save(StatisticCode(code='PC', description='Passing Completions', grouping='team'))
+    stat_repo.save(StatisticCategory(code='T', description='Team'))
+
+    helper = MatchUpHelper(maker)
+    results = helper.build_split_statistic({'l': 'Comp-Att', 'n': 'completionAttempts'},
+                                           ['PC', 'PA'],
+                                           1, 1)
+
+    assert_that(results).is_empty()
+
+
+def test_generate_statistics():
+    """
+    Tests Generating the statistics.
     """
 
-    doc = load_test_file()
-    helper = MatchupHelper(doc, API_URL)
+    maker = build_maker()
+    load_stats_codes(maker)
+    repo = StatisticCodeRepository(maker)
+    repo.save(StatisticCategory(code='T', description='Team'))
+    payload = load_test_file()
+    team_stats = payload.get('tmStats', {})
+    home_stats = team_stats.get('home', {}).get('s', {})
+    helper = MatchUpHelper(maker)
 
-    stats = helper.build_team_stats(TEAM_ID, AWAY_ID, GAME_ID)
-
-    assert_that(stats).contains({'statisticCode': 'DRV',
-                                 'value': 10,
-                                 'gameId': GAME_ID,
-                                 'teamId': TEAM_ID,
-                                 'categoryCode': 'O'
-                                 }) \
-        .contains({'statisticCode': 'DRV',
-                   'value': 10,
-                   'gameId': GAME_ID,
-                   'teamId': AWAY_ID,
-                   'categoryCode': 'O'
-                   })
+    result = helper.generate_stats(1, 1, home_stats)
+    assert_that(result).is_not_empty().is_length(26)
 
 
-def test_yards_per_play():
+def test_convert_value():
     """
-    Tests getting the yards per play
+    Tests converting the Value.
     """
-
-    doc = load_test_file()
-    helper = MatchupHelper(doc, API_URL)
-
-    stats = helper.build_team_stats(TEAM_ID, AWAY_ID, GAME_ID)
-
-    assert_that(stats).contains({'statisticCode': 'YPP',
-                                 'value': 3.7,
-                                 'gameId': GAME_ID,
-                                 'teamId': TEAM_ID,
-                                 'categoryCode': 'O'
-                                 }) \
-        .contains({'statisticCode': 'YPP',
-                   'value': 7.1,
-                   'gameId': GAME_ID,
-                   'teamId': AWAY_ID,
-                   'categoryCode': 'O'
-                   })
+    assert_that(MatchUpHelper.convert_value('10')).is_equal_to(10)
 
 
-def test_total_passing():
+def test_convert_value_not_numeric():
     """
-    Tests getting total passing yards
+    Tests converting a non-numeric value.
+    """
+    assert_that(MatchUpHelper.convert_value('A')).is_zero()
+
+
+def test_convert_value_time():
+    """
+    Tests converting a time value to total seconds.
     """
 
-    doc = load_test_file()
-    helper = MatchupHelper(doc, API_URL)
-
-    stats = helper.build_team_stats(TEAM_ID, AWAY_ID, GAME_ID)
-
-    assert_that(stats).contains({'statisticCode': 'PYDS',
-                                 'value': 191,
-                                 'gameId': GAME_ID,
-                                 'teamId': TEAM_ID,
-                                 'categoryCode': 'O'
-                                 }) \
-        .contains({'statisticCode': 'PYDS',
-                   'value': 292,
-                   'gameId': GAME_ID,
-                   'teamId': AWAY_ID,
-                   'categoryCode': 'O'
-                   })
-
-
-def test_passing_efficiency():
-    """
-    Tests getting the passing efficiency.
-    """
-
-    doc = load_test_file()
-    helper = MatchupHelper(doc, API_URL)
-
-    stats = helper.build_team_stats(TEAM_ID, AWAY_ID, GAME_ID)
-
-    assert_that(stats).contains({'statisticCode': 'PC',
-                                 'value': 29,
-                                 'gameId': GAME_ID,
-                                 'teamId': TEAM_ID,
-                                 'categoryCode': 'O'
-                                 }) \
-        .contains({'statisticCode': 'PC',
-                   'value': 26,
-                   'gameId': GAME_ID,
-                   'teamId': AWAY_ID,
-                   'categoryCode': 'O'
-                   }) \
-        .contains({'statisticCode': 'PA',
-                   'value': 41,
-                   'gameId': GAME_ID,
-                   'teamId': TEAM_ID,
-                   'categoryCode': 'O'
-                   }) \
-        .contains({'statisticCode': 'PA',
-                   'value': 31,
-                   'gameId': GAME_ID,
-                   'teamId': AWAY_ID,
-                   'categoryCode': 'O'
-                   })
-
-
-def test_yards_per_pass():
-    """
-    Tests get yards per pass
-    """
-
-    doc = load_test_file()
-    helper = MatchupHelper(doc, API_URL)
-
-    stats = helper.build_team_stats(TEAM_ID, AWAY_ID, GAME_ID)
-
-    assert_that(stats).contains({'statisticCode': 'PSAVG',
-                                 'value': 4.0,
-                                 'gameId': GAME_ID,
-                                 'teamId': TEAM_ID,
-                                 'categoryCode': 'O'
-                                 }) \
-        .contains({'statisticCode': 'PSAVG',
-                   'value': 8.8,
-                   'gameId': GAME_ID,
-                   'teamId': AWAY_ID,
-                   'categoryCode': 'O'
-                   })
-
-
-def test_passing_interceptions():
-    """
-    Tests get passing interceptions
-    """
-
-    doc = load_test_file()
-    helper = MatchupHelper(doc, API_URL)
-
-    stats = helper.build_team_stats(TEAM_ID, AWAY_ID, GAME_ID)
-
-    assert_that(stats).contains({'statisticCode': 'PINT',
-                                 'value': 3,
-                                 'gameId': GAME_ID,
-                                 'teamId': TEAM_ID,
-                                 'categoryCode': 'O'
-                                 }) \
-        .contains({'statisticCode': 'PINT',
-                   'value': 2,
-                   'gameId': GAME_ID,
-                   'teamId': AWAY_ID,
-                   'categoryCode': 'O'
-                   })
-
-
-def test_rushing_yards():
-    """
-    Tests get rushing yards.
-    """
-
-    doc = load_test_file()
-    helper = MatchupHelper(doc, API_URL)
-
-    stats = helper.build_team_stats(TEAM_ID, AWAY_ID, GAME_ID)
-
-    assert_that(stats).contains({'statisticCode': 'RYDS',
-                                 'value': 52,
-                                 'gameId': GAME_ID,
-                                 'teamId': TEAM_ID,
-                                 'categoryCode': 'O'
-                                 }) \
-        .contains({'statisticCode': 'RYDS',
-                   'value': 121,
-                   'gameId': GAME_ID,
-                   'teamId': AWAY_ID,
-                   'categoryCode': 'O'
-                   })
-
-
-def test_rushing_attempts():
-    """
-    Tests get rushing attempts
-    """
-
-    doc = load_test_file()
-    helper = MatchupHelper(doc, API_URL)
-
-    stats = helper.build_team_stats(TEAM_ID, AWAY_ID, GAME_ID)
-
-    assert_that(stats).contains({'statisticCode': 'RCAR',
-                                 'value': 18,
-                                 'gameId': GAME_ID,
-                                 'teamId': TEAM_ID,
-                                 'categoryCode': 'O'
-                                 }) \
-        .contains({'statisticCode': 'RCAR',
-                   'value': 25,
-                   'gameId': GAME_ID,
-                   'teamId': AWAY_ID,
-                   'categoryCode': 'O'
-                   })
-
-
-def test_yards_per_rush():
-    """
-    Test get yards per rush
-    """
-
-    doc = load_test_file()
-    helper = MatchupHelper(doc, API_URL)
-
-    stats = helper.build_team_stats(TEAM_ID, AWAY_ID, GAME_ID)
-
-    assert_that(stats).contains({'statisticCode': 'RAVG',
-                                 'value': 2.9,
-                                 'gameId': GAME_ID,
-                                 'teamId': TEAM_ID,
-                                 'categoryCode': 'O'
-                                 }) \
-        .contains({'statisticCode': 'RAVG',
-                   'value': 4.8,
-                   'gameId': GAME_ID,
-                   'teamId': AWAY_ID,
-                   'categoryCode': 'O'
-                   })
-
-
-def test_red_zone_efficiency():
-    """
-    Tests get redzone efficiency
-    """
-
-    doc = load_test_file()
-    helper = MatchupHelper(doc, API_URL)
-
-    stats = helper.build_team_stats(TEAM_ID, AWAY_ID, GAME_ID)
-
-    assert_that(stats).contains({'statisticCode': 'RZA',
-                                 'value': 2,
-                                 'gameId': GAME_ID,
-                                 'teamId': TEAM_ID,
-                                 'categoryCode': 'O'
-                                 }) \
-        .contains({'statisticCode': 'RZA',
-                   'value': 2,
-                   'gameId': GAME_ID,
-                   'teamId': AWAY_ID,
-                   'categoryCode': 'O'
-                   }) \
-        .contains({'statisticCode': 'RZC',
-                   'value': 1,
-                   'gameId': GAME_ID,
-                   'teamId': TEAM_ID,
-                   'categoryCode': 'O'
-                   }) \
-        .contains({'statisticCode': 'RZC',
-                   'value': 2,
-                   'gameId': GAME_ID,
-                   'teamId': AWAY_ID,
-                   'categoryCode': 'O'
-                   })
-
-
-def test_penalties():
-    """
-    Test get penalties
-    """
-
-    doc = load_test_file()
-    helper = MatchupHelper(doc, API_URL)
-
-    stats = helper.build_team_stats(TEAM_ID, AWAY_ID, GAME_ID)
-
-    assert_that(stats).contains({'statisticCode': 'PEN',
-                                 'value': 4,
-                                 'gameId': GAME_ID,
-                                 'teamId': TEAM_ID,
-                                 'categoryCode': 'T'
-                                 }) \
-        .contains({'statisticCode': 'PEN',
-                   'value': 5,
-                   'gameId': GAME_ID,
-                   'teamId': AWAY_ID,
-                   'categoryCode': 'T'
-                   }) \
-        .contains({'statisticCode': 'PENYDS',
-                   'value': 30,
-                   'gameId': GAME_ID,
-                   'teamId': TEAM_ID,
-                   'categoryCode': 'T'
-                   }) \
-        .contains({'statisticCode': 'PENYDS',
-                   'value': 35,
-                   'gameId': GAME_ID,
-                   'teamId': AWAY_ID,
-                   'categoryCode': 'T'
-                   })
-
-
-def test_defensive_touchdowns():
-    """
-    Test get defensive touchdowns
-    """
-
-    doc = load_test_file()
-    helper = MatchupHelper(doc, API_URL)
-
-    stats = helper.build_team_stats(TEAM_ID, AWAY_ID, GAME_ID)
-
-    assert_that(stats).contains({'statisticCode': 'TD',
-                                 'value': 0,
-                                 'gameId': GAME_ID,
-                                 'teamId': TEAM_ID,
-                                 'categoryCode': 'D'
-                                 }) \
-        .contains({'statisticCode': 'TD',
-                   'value': 0,
-                   'gameId': GAME_ID,
-                   'teamId': AWAY_ID,
-                   'categoryCode': 'D'
-                   })
-
-
-def test_time_of_possesion():
-    """
-    Test get time of possession
-    """
-
-    doc = load_test_file()
-    helper = MatchupHelper(doc, API_URL)
-
-    stats = helper.build_team_stats(TEAM_ID, AWAY_ID, GAME_ID)
-
-    assert_that(stats).contains({'statisticCode': 'TOP',
-                                 'value': 1726,
-                                 'gameId': GAME_ID,
-                                 'teamId': TEAM_ID,
-                                 'categoryCode': 'T'
-                                 }) \
-        .contains({'statisticCode': 'TOP',
-                   'value': 1874,
-                   'gameId': GAME_ID,
-                   'teamId': AWAY_ID,
-                   'categoryCode': 'T'
-                   })
-
-
-def test_get_turnovers():
-    """
-    Test get Turnovers.
-    """
-
-    doc = load_test_file()
-    helper = MatchupHelper(doc, API_URL)
-
-    stats = helper.build_team_stats(TEAM_ID, AWAY_ID, GAME_ID)
-
-    assert_that(stats).contains({'statisticCode': 'TO',
-                                 'value': 3,
-                                 'gameId': GAME_ID,
-                                 'teamId': TEAM_ID,
-                                 'categoryCode': 'T'
-                                 }) \
-        .contains({'statisticCode': 'TO',
-                   'value': 4,
-                   'gameId': GAME_ID,
-                   'teamId': AWAY_ID,
-                   'categoryCode': 'T'
-                   })
-
-
-def test_get_scores():
-    """
-    Test get Score stats from the page.
-    """
-
-    doc = load_test_file()
-    helper = MatchupHelper(doc, API_URL)
-    stats = helper.build_team_stats(TEAM_ID, AWAY_ID, GAME_ID)
-
-    assert_that(stats).contains({'statisticCode': 'PTS',
-                                 'value': 10,
-                                 'gameId': GAME_ID,
-                                 'teamId': TEAM_ID,
-                                 'categoryCode': 'T'
-                                 }) \
-        .contains({'statisticCode': 'PTS',
-                   'value': 31,
-                   'gameId': GAME_ID,
-                   'teamId': AWAY_ID,
-                   'categoryCode': 'T'
-                   }) \
-        .contains({'statisticCode': 'PTSA',
-                   'value': 31,
-                   'gameId': GAME_ID,
-                   'teamId': TEAM_ID,
-                   'categoryCode': 'T'
-                   }) \
-        .contains({'statisticCode': 'PTSA',
-                   'value': 10,
-                   'gameId': GAME_ID,
-                   'teamId': AWAY_ID,
-                   'categoryCode': 'T'
-                   })
+    assert_that(MatchUpHelper.convert_value('1:10')).is_equal_to(70)
