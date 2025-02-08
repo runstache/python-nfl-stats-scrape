@@ -133,3 +133,5 @@ dmypy.json
 *.iml
 /.settings/
 /src/output/
+
+.DS_Store

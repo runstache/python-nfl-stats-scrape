@@ -5,20 +5,20 @@ Tests for Position Translation
 from src.helpers.positions import PositionHelper
 from assertpy import assert_that
 
-def test_position_translation():
+
+def translation_position():
     """
-    Tests position translation
+    Tests translating the Position Name to a code.
     """
-    
+
     helper = PositionHelper()
-    
-    assert_that(helper.translate_position('Wide Receiver')).is_equal_to('WR')
-    
-def test_position_translation_not_found():
+    assert_that(helper.translate_position('fullback')).is_equal_to('FB')
+
+
+def test_translate_position_not_present():
     """
-    Test Position translation failure
+    Tests Translating a Position not in the list.
     """
-    
+
     helper = PositionHelper()
-    
-    assert_that(helper.translate_position('Fart')).is_none()
+    assert_that(helper.translate_position('farts')).is_none()

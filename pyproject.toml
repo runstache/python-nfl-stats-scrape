@@ -12,7 +12,12 @@ classifiers = [
 ]
 
 dependencies = [
-    "sqlalchemy"
+    "batch-football-data>=0.0.8",
+    "fake-user-agent>=2.3.9",
+    "pyquery>=2.0.1",
+    "requests>=2.32.3",
+    "selenium>=4.28.1",
+    "sqlalchemy",
 ]
 
 [project.urls]
@@ -156,5 +161,19 @@ score = true
 
 [mypy]
 mypy_path = "src/"
+
+[dependency-groups]
+dev = [
+    "assertpy>=1.1",
+    "bandit>=1.8.2",
+    "flake8>=7.1.1",
+    "mypy>=1.15.0",
+    "pycodestyle>=2.12.1",
+    "pyflakes>=3.2.0",
+    "pylint>=3.3.4",
+    "pytest>=8.3.4",
+    "pytest-cov>=6.0.0",
+    "responses>=0.25.6",
+]
 
 [tool.bandit]

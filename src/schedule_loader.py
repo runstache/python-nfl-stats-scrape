@@ -22,7 +22,9 @@ def main(args:dict) -> None:
     """
     
     schedule_url = 'https://www.espn.com/nfl/schedule/_/week/' + str(args.get('week')) + '/year/' + str(args.get('year')) + '/seasontype/' + str(args.get('type'))
-    
+
+    'https://www.espn.com/nfl/schedule/_/week/1/year/2022/seasontype/2'
+
     logging.info('RETRIEVING SCHEDULE..')
     response = requests.get(schedule_url)
     

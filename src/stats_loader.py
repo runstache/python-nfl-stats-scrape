@@ -10,7 +10,7 @@ from urllib.parse import urljoin
 import requests
 from pyquery import PyQuery as pq
 
-from helpers.boxscore import BoxscoreHelper
+from helpers.box_score import BoxscoreHelper
 from helpers.player import PlayerHelper
 
 logging.basicConfig(level=logging.INFO)

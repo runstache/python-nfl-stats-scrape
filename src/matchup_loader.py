@@ -4,13 +4,18 @@ Script for loading matchup statistics.
 
 import argparse
 import logging
-from typing import Callable
 from urllib.parse import urljoin
-
 import requests
-from pyquery import PyQuery as pq
+from pyquery import PyQuery
+from sqlalchemy import create_engine, URL
+from sqlalchemy.orm import sessionmaker
 
-from helpers.boxscore import BoxscoreHelper
+from football_data.models import Team, StatisticCode, StatisticCategory, Statistic, Schedule, \
+    TypeCode
+from football_data.repositories import TeamRepository, StatisticRepository, StatisticCodeRepository, \
+    StatisticCategoryRepository, ScheduleRepository, TypeCodeRepository
+
+from helpers.box_score import BoxscoreHelper
 from helpers.team import MatchupHelper
 
 logging.basicConfig(level=logging.INFO)
@@ -18,12 +23,35 @@ logging.basicConfig(level=logging.INFO)
 API_BASE_URL = 'http://k3-main:30082'
 
 
+def build_maker(server: str, database: str, user: str, password: str) -> sessionmaker:
+    """
+    Creates a Session Maker for the Stats DB.
+    Args:
+        server: Server
+        database: Database
+        user: User
+        password: Password
 
-def get_schedules(year: int, week: int, type_code: str) -> list | None:
+    Returns: Session Maker
+    """
+
+    url = URL.create('postgresql', username=user, password=password, host=server, database=database)
+    engine = create_engine(url)
+    Team.metadata.create_all(bind=engine)
+    Statistic.metadata.create_all(bind=engine)
+    Schedule.metadata.create_all(bind=engine)
+    StatisticCategory.metadata.create_all(bind=engine)
+    StatisticCode.metadata.create_all(bind=engine)
+    TypeCode.metadata.create_all(bind=engine)
+    return sessionmaker(bind=engine, expire_on_commit=False)
+
+
+def get_schedules(maker: sessionmaker, year: int, week: int, type_code: str) -> list[Schedule]:
     """
     Retrieves a listing of Schedule items from the API.
 
     Args:
+        maker (sessionmaker): Session Maer
         year (int): year value
         week (int): week value
         type_code (str): type code
@@ -31,29 +59,14 @@ def get_schedules(year: int, week: int, type_code: str) -> list | None:
     Returns:
         list: list of Schedules
     """
-    params = {
-        'week': week,
-        'year': year,
-        'typeCode': type_code
-    }
-    url = urljoin(API_BASE_URL, '/api/schedules')
-    success = False
-    max_attempts = 5
-    count = 0
 
-    while not success and count <= max_attempts:
-        try:
-            response = requests.get(url, params=params, timeout=60)
-            if (response.status_code == 200):
-                success = True
-                return response.json()
-            else:
-                success = False
-                count = count + 1
-        except TimeoutError:
-            success = False
-            count = count + 1
-    return None
+    repo = ScheduleRepository(maker)
+    schedules = repo.get_schedules(year=year, week=week)
+
+    type_repo = TypeCodeRepository(maker)
+    type_code = type_repo.get_type_code(code=type_code)
+
+    return list(filter(lambda x: x.type_id == type_code.id, schedules))
 
 
 def get_matchup_page(game_id: str) -> str | None:
@@ -74,56 +87,67 @@ def get_matchup_page(game_id: str) -> str | None:
         return response.text
     return None
 
-def main(args: dict) -> None:
+
+def main(arguments: dict) -> None:
     """
     Main Function
 
     Args:
-        args (dict): Argument Dictionary.
+        arguments (dict): Argument Dictionary.
     """
 
     logging.info('GETTING SCHEDULES')
+    db_user = arguments.get('user_name', '')
+    db_password = arguments.get('password', '')
+    db_server = arguments.get('server', '')
+    database = arguments.get('database', '')
+    year_value = int(arguments.get('year', 0))
+    week_number = int(arguments.get('week', 0))
+    type_code = arguments.get('type', '')
 
-    schedules = get_schedules(int(args.get('year')), int(
-        args.get('week')), str(args.get('type')))
+    maker = build_maker(db_server, database, db_user, db_password)
+
+    schedules = get_schedules(maker, year_value, week_number, type_code)
     stat_helper = BoxscoreHelper(API_BASE_URL)
-    
+
     for schedule in schedules:
-        if schedule.get('HomeGame', False) is True:
-            game_id = schedule.get('gameId')
-            logging.info(f"PULLING MATCHUP STATS FOR GAMEID: {game_id}")
-
-            stat_page_html = get_matchup_page(schedule.get('gameId'))
+        if schedule.is_home is True:
+            logging.info('PULLING MATCHUP STATS FOR GAMEID: %s', schedule.game_id)
+            stat_page_html = get_matchup_page(schedule.game_id)
             if stat_page_html:
-                team_id = int(schedule.get('teamId'))
-                opponent_id = int(schedule.get('opponentId'))
-
                 # COMPILE AND LOAD STATS
                 matchup_helper = MatchupHelper(stat_page_html, API_BASE_URL)
-                
-                logging.info(f"LOADING MATCHUP STATS FOR GAME: {game_id}")
-                stats = matchup_helper.build_team_stats(team_id, opponent_id, game_id)
+                logging.info('LOADING MATCHUP STATS FOR GAME: %s', schedule.game_id)
+                stats = matchup_helper.build_team_stats(schedule.team_id, schedule.opponent_id,
+                                                        schedule.game_id)
                 if stats:
                     logging.info('SENDING STATS TO API')
                     stat_helper.add_statistic(stats)
                     logging.info('FINISHED SENDING STATS TO API')
                 else:
-                    logging.warning(f"NO STATS FOUND FOR GAME: {game_id}")
-                logging.info(f"FINISHED LOADING STATS FOR GAME ID: {game_id}")
+                    logging.warning('NO STATS FOUND FOR GAME: %s', schedule.game_id)
+                logging.info('FINISHED LOADING STATS FOR GAME ID: %s', schedule.game_id)
     logging.info('DONE')
 
 
 if __name__ == '__main__':
-    argparser = argparse.ArgumentParser(description='Script Arguments')
-    argparser.add_argument('-y', '--year', type=int, help='Year Value')
-    argparser.add_argument('-w', '--week', type=int, help='Week Value')
-    argparser.add_argument('-t', '--type', type=str,
-                           help='Schedule Type (1,2,3)')
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-y', '--year', type=int, help='Year Value')
+    parser.add_argument('-w', '--week', type=int, help='Week Value')
+    parser.add_argument('-t', '--type', type=str, help='Schedule Type (1,2,3)')
+    parser.add_argument('-s', '--server', type=str, help='DB Server')
+    parser.add_argument('-d', '--database', type=str, help='Database Name')
+    parser.add_argument('-u', '--user', type=str, help='Username')
+    parser.add_argument('-p', '--password', type=str, help='Password')
 
-    args = argparser.parse_args()
+    args = parser.parse_args()
 
     main({
         'week': args.week,
         'year': args.year,
-        'type': args.type
+        'type': args.type,
+        'user_name': args.user,
+        'password': args.password,
+        'server': args.server,
+        'database': args.database
     })
